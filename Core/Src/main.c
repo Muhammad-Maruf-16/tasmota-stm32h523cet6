@@ -31,6 +31,7 @@
 #include "secure_packet.h"
 #include "can_bus.h"
 #include "ota.h"
+#include "bl0906.h"
 
 #include <string.h>
 #include <stdio.h>
@@ -245,12 +246,12 @@ void W5500_SendTCP(const uint8_t *data, uint16_t len)
     if (len == 0 || data == NULL) return;
 
     // Tunggu sampai buffer hardware W5500 memiliki ruang cukup
-    uint32_t t_start = HAL_GetTick();
+    uint32_t t_start = g_ms_tick;
     while (W5500_GetTxFreeSize() < len)
     {
         uint8_t sr = W5500_ReadReg(Sn_SR, W5500_S0_REG_OP);
         if (sr != SOCK_ESTABLISHED && sr != SOCK_CLOSE_WAIT) return;
-        if (HAL_GetTick() - t_start > 1500) return;
+        if (g_ms_tick - t_start > 1500) return;
     }
 
     uint16_t ptr = ((uint16_t)W5500_ReadReg(Sn_TX_WR,     W5500_S0_REG_OP) << 8) |
@@ -314,7 +315,7 @@ int main(void)
   /* MCU Configuration--------------------------------------------------------*/
 
   /* Reset of all peripherals, Initializes the Flash interface and the Systick. */
-  HAL_Init();
+  NVIC_SetPriorityGrouping(NVIC_PRIORITYGROUP_4);
 
   /* USER CODE BEGIN Init */
   /* USER CODE END Init */
@@ -354,6 +355,9 @@ int main(void)
     /* CAN Bus: Dinonaktifkan sementara */
     // CAN_Bus_Init();
 
+    /* BL0906 Energy Meter Init */
+    BL0906_Init();
+
 #ifdef DEBUG_MQTT
     W5500_WriteReg(0x001E, 0x48, 2);
     W5500_WriteReg(0x001F, 0x48, 2);
@@ -371,8 +375,8 @@ int main(void)
         /* Bagian CAN Bus test request dinonaktifkan sementara */
         /*
         static uint32_t last_test = 0;
-        if ((HAL_GetTick() - last_test) >= 1000) {
-            last_test = HAL_GetTick();
+        if ((g_ms_tick - last_test) >= 1000) {
+            last_test = g_ms_tick;
             CAN_Bus_SendCmd(RELAY_CMD_STATUS_REQ);
         }
         */
@@ -417,6 +421,9 @@ int main(void)
         	LL_GPIO_TogglePin(LED_BUILTIN_GPIO_Port, LED_BUILTIN_Pin);
         	lTime = g_ms_tick;
         }
+
+        /* BL0906 Energy Meter non-blocking process */
+        BL0906_Process();
         /* Bagian CAN Bus RX flag dinonaktifkan sementara */
         /*
         if (g_can_rx_flag) {
@@ -478,11 +485,8 @@ void SystemClock_Config(void)
   LL_RCC_SetAPB3Prescaler(LL_RCC_APB3_DIV_1);
   LL_SetSystemCoreClock(250000000);
 
-   /* Update the time base */
-  if (HAL_InitTick (TICK_INT_PRIORITY) != HAL_OK)
-  {
-    Error_Handler();
-  }
+   /* Update the time base (250 MHz) */
+  LL_Init1msTick(250000000);
 }
 
 /**

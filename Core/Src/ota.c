@@ -21,6 +21,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+extern volatile uint32_t g_ms_tick;
+
 /* ==============================================================================
  * W5500 ETHERNET DEFINES (SOCKET 0)
  * ============================================================================== */
@@ -364,12 +366,12 @@ void Process_Web_OTA(void)
         W5500_WriteReg(Sn_CR, W5500_S0_REG_OP, CMD_RECV);
         while (W5500_ReadReg(Sn_CR, W5500_S0_REG_OP));
         // Tunggu TX buffer tuntas terkirim ke PC sebelum close
-        uint32_t drain_to = HAL_GetTick();
+        uint32_t drain_to = g_ms_tick;
         while (W5500_GetTxFreeSize() < 8192)
         {
             uint8_t cur_sr = W5500_ReadReg(Sn_SR, W5500_S0_REG_OP);
             if (cur_sr != SOCK_ESTABLISHED && cur_sr != SOCK_CLOSE_WAIT) break;
-            if (HAL_GetTick() - drain_to > 1000) break;
+            if (g_ms_tick - drain_to > 1000) break;
         }
 
         W5500_WriteReg(Sn_CR, W5500_S0_REG_OP, CMD_DISCON);
@@ -402,7 +404,7 @@ void Process_Web_OTA(void)
 
         uint8_t  html_tail[4] = { 0 };
         char    *pBody = NULL;
-        uint32_t header_to = HAL_GetTick();
+        uint32_t header_to = g_ms_tick;
         while (pBody == NULL)
         {
             static uint8_t overlap[4 + CHUNK_BUFFER_SIZE];
@@ -421,7 +423,7 @@ void Process_Web_OTA(void)
             }
             else
             {
-                if (HAL_GetTick() - header_to > 5000) break;
+                if (g_ms_tick - header_to > 5000) break;
                 memcpy(html_tail, ram_buffer + fetch - 4, 4);
                 rx_rd += fetch;
                 W5500_WriteReg(Sn_RX_RD,     W5500_S0_REG_OP, (uint8_t)(rx_rd >> 8));
@@ -431,7 +433,7 @@ void Process_Web_OTA(void)
                 rx_len = ((uint16_t)W5500_ReadReg(Sn_RX_RSR,     W5500_S0_REG_OP) << 8) |
                                      W5500_ReadReg(Sn_RX_RSR + 1, W5500_S0_REG_OP);
                 if (rx_len == 0) continue;
-                header_to = HAL_GetTick();
+                header_to = g_ms_tick;
                 fetch = (rx_len > (CHUNK_BUFFER_SIZE - 1)) ? (CHUNK_BUFFER_SIZE - 1) : rx_len;
                 s_off = rx_rd & W5500_S0_BUF_MASK;
                 W5500_ReadBuf(s_off, W5500_S0_RX_OP, ram_buffer, fetch);
@@ -476,7 +478,7 @@ void Process_Web_OTA(void)
         W5500_WriteReg(Sn_CR,         W5500_S0_REG_OP, CMD_RECV);
         while (W5500_ReadReg(Sn_CR,   W5500_S0_REG_OP));
 
-        uint32_t upload_to = HAL_GetTick();
+        uint32_t upload_to = g_ms_tick;
         while (bytes_received < expected_size)
         {
             rx_len = ((uint16_t)W5500_ReadReg(Sn_RX_RSR,     W5500_S0_REG_OP) << 8) |
@@ -485,10 +487,10 @@ void Process_Web_OTA(void)
             {
                 uint8_t cur_sr = W5500_ReadReg(Sn_SR, W5500_S0_REG_OP);
                 if (cur_sr != SOCK_ESTABLISHED && cur_sr != SOCK_CLOSE_WAIT) break;
-                if (HAL_GetTick() - upload_to > 10000) break;
+                if (g_ms_tick - upload_to > 10000) break;
                 continue;
             }
-            upload_to = HAL_GetTick();
+            upload_to = g_ms_tick;
             fetch = (rx_len > CHUNK_BUFFER_SIZE) ? CHUNK_BUFFER_SIZE : rx_len;
             uint32_t needed = expected_size - bytes_received;
             if (fetch > needed) fetch = needed;

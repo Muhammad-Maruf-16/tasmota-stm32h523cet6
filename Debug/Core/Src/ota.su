@@ -1,0 +1,3 @@
+../Core/Src/ota.c:77:6:OTA_Init	0	static
+../Core/Src/ota.c:90:6:Process_Web_OTA	240	static,ignoring_inline_asm
+../Core/Src/ota.c:82:6:OTA_Process	0	static

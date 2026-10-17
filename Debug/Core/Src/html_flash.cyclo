@@ -1,0 +1,7 @@
+../Core/Src/html_flash.c:22:17:html_calc_crc_from_flash.constprop	5
+../Core/Src/html_flash.c:55:6:HtmlFlash_ReadMeta	1
+../Core/Src/html_flash.c:63:6:HtmlFlash_WriteMeta	1
+../Core/Src/html_flash.c:72:9:HtmlFlash_IsValid	3
+../Core/Src/html_flash.c:89:6:HtmlFlash_SendPage	3
+../Core/Src/html_flash.c:123:9:HtmlFlash_VerifyAndSaveMeta	3
+../Core/Src/html_flash.c:141:9:HtmlFlash_SavePage	6

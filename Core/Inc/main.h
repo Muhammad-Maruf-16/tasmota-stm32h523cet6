@@ -94,7 +94,10 @@ void W5500_SendTCP(const uint8_t *data, uint16_t len);
 #define ETH_MOSI_GPIO_Port GPIOB
 
 /* USER CODE BEGIN Private defines */
-
+#ifndef LED_BUILTIN_Pin
+#define LED_BUILTIN_Pin LL_GPIO_PIN_13
+#define LED_BUILTIN_GPIO_Port GPIOC
+#endif
 /* USER CODE END Private defines */
 
 #ifdef __cplusplus

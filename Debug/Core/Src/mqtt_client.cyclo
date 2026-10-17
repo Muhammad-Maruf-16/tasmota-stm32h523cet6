@@ -1,0 +1,16 @@
+../Drivers/CMSIS/Include/core_cm33.h:2711:34:__NVIC_SystemReset	1
+../Core/Src/mqtt_client.c:155:16:encode_remaining	2
+../Core/Src/mqtt_client.c:170:17:write_str	1
+../Core/Src/mqtt_client.c:118:13:s2_wait_cr	3
+../Core/Src/mqtt_client.c:198:13:format_time.constprop	1
+../Core/Src/mqtt_client.c:182:13:format_uptime.constprop	1
+../Core/Src/mqtt_client.c:130:13:s2_send.constprop	4
+../Core/Src/mqtt_client.c:251:6:MQTT_Publish	1
+../Core/Src/mqtt_client.c:431:13:publish_status_n	13
+../Core/Src/mqtt_client.c:322:13:publish_state	1
+../Core/Src/mqtt_client.c:359:13:publish_sensor	1
+../Core/Src/mqtt_client.c:389:13:publish_auth	2
+../Core/Src/mqtt_client.c:603:13:mqtt_handle_incoming.isra	29
+../Core/Src/mqtt_client.c:717:6:MQTT_Init	1
+../Core/Src/mqtt_client.c:731:6:MQTT_Process	33
+../Core/Src/mqtt_client.c:896:9:MQTT_IsConnected	1

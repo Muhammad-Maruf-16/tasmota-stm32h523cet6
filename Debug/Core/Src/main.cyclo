@@ -1,0 +1,14 @@
+../Core/Src/main.c:285:13:UART_PrintDHCPStatus	3
+../Core/Src/main.c:130:23:SPI1_Transfer	5
+../Core/Src/main.c:146:6:W5500_WriteReg	1
+../Core/Src/main.c:156:9:W5500_ReadReg	1
+../Core/Src/main.c:167:6:W5500_WriteBuf	2
+../Core/Src/main.c:177:6:W5500_ReadBuf	2
+../Core/Src/main.c:187:6:W5500_InitNetwork	6
+../Core/Src/main.c:218:6:W5500_SocketOpenListen	4
+../Core/Src/main.c:232:10:W5500_GetTxFreeSize	2
+../Core/Src/main.c:244:6:W5500_SendTCP	9
+../Core/Src/main.c:441:6:SystemClock_Config	6
+../Core/Src/main.c:496:6:PeriphCommonClock_Config	2
+../Core/Src/main.c:307:5:main	9
+../Core/Src/main.c:525:6:Error_Handler	1

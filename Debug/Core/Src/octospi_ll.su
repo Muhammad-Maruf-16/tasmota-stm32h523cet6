@@ -1,0 +1,9 @@
+../Core/Src/octospi_ll.c:62:13:ExtFlash_WaitBusy_RAM	12	static
+../Core/Src/octospi_ll.c:84:13:ExtFlash_WriteEnable_RAM	0	static
+../Core/Src/octospi_ll.c:15:6:OCTOSPI1_LL_IndirectInit_RAM	0	static
+../Core/Src/octospi_ll.c:34:6:OCTOSPI1_LL_MemoryMapped_RAM	0	static
+../Core/Src/octospi_ll.c:97:6:ExtFlash_EraseSector	16	static,ignoring_inline_asm
+../Core/Src/octospi_ll.c:127:6:ExtFlash_WritePage	24	static,ignoring_inline_asm
+../Core/Src/octospi_ll.c:165:6:Flash_ReadBytes	0	static
+../Core/Src/octospi_ll.c:171:6:OCTOSPI1_LL_IndirectInit	0	static
+../Core/Src/octospi_ll.c:176:6:OCTOSPI1_LL_MemoryMapped	0	static

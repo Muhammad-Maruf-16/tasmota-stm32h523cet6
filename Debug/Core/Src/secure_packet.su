@@ -1,0 +1,6 @@
+../Core/Src/secure_packet.c:43:13:sha256_transform	336	static
+../Core/Src/secure_packet.c:85:13:sha256_final	24	static
+../Core/Src/secure_packet.c:109:13:ConvertBytesToHex.constprop	12	static
+../Core/Src/secure_packet.c:120:6:SecurePacket_Init	0	static
+../Core/Src/secure_packet.c:126:5:Generate_Secure_Packet	352	static
+../Core/Src/secure_packet.c:147:5:Verify_Secure_Command	408	static

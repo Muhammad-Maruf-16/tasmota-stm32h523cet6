@@ -86,11 +86,11 @@ static void send_config_json(void)
     MqttConfig_t cfg;
     MqttConfig_Load(&cfg);
     // Build preview topic
-    char t_cmnd[96], t_stat[96], t_tele[96];
+    static char t_cmnd[96], t_stat[96], t_tele[96];
     MqttConfig_BuildTopic(&cfg, "cmnd", t_cmnd, sizeof(t_cmnd));
     MqttConfig_BuildTopic(&cfg, "stat", t_stat, sizeof(t_stat));
     MqttConfig_BuildTopic(&cfg, "tele", t_tele, sizeof(t_tele));
-    char json[512];
+    static char json[768];
     snprintf(json, sizeof(json),
         "{"
         "\"host\":\"%s\","
@@ -111,7 +111,7 @@ static void send_config_json(void)
         cfg.topic, cfg.full_topic,
         cfg.tele_period, cfg.enabled,
         t_cmnd, t_stat, t_tele);
-    char hdr[128];
+    static char hdr[128];
     snprintf(hdr, sizeof(hdr),
         "HTTP/1.1 200 OK\r\n"
         "Content-Type: application/json\r\n"

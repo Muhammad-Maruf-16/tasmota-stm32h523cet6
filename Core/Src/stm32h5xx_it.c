@@ -22,6 +22,7 @@
 #include "stm32h5xx_it.h"
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
+#include "bl0906.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -185,7 +186,7 @@ void SysTick_Handler(void)
   /* USER CODE BEGIN SysTick_IRQn 0 */
   g_ms_tick++;
   /* USER CODE END SysTick_IRQn 0 */
-  HAL_IncTick();
+
   /* USER CODE BEGIN SysTick_IRQn 1 */
 
   /* USER CODE END SysTick_IRQn 1 */
@@ -206,11 +207,18 @@ void UART5_IRQHandler(void)
   /* USER CODE BEGIN UART5_IRQn 0 */
 	if (LL_USART_IsActiveFlag_RXNE_RXFNE(UART5))
 	{
-		uint8_t data = LL_USART_ReceiveData8(UART5); // Membaca data otomatis me-reset flag RXNE
+		uint8_t data = LL_USART_ReceiveData8(UART5);
+		BL0906_RxByteCallback(data);
 	}
 	if (LL_USART_IsActiveFlag_ORE(UART5))
 	{
-		LL_USART_ClearFlag_ORE(UART5); // Reset flag jika terjadi overrun
+		LL_USART_ClearFlag_ORE(UART5);
+		g_bl0906_data.overrun_err_count++;
+	}
+	if (LL_USART_IsActiveFlag_FE(UART5))
+	{
+		LL_USART_ClearFlag_FE(UART5);
+		g_bl0906_data.framing_err_count++;
 	}
   /* USER CODE END UART5_IRQn 0 */
   /* USER CODE BEGIN UART5_IRQn 1 */
