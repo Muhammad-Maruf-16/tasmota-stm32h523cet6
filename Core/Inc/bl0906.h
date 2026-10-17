@@ -97,6 +97,7 @@ typedef struct {
     float frequency;                     /* Frekuensi AC (Hz) */
     float temperature;                   /* Suhu internal IC (°C) */
     float current[BL0906_NUM_CHANNELS];  /* Arus Channel 1..6 (A) */
+    uint32_t arus_raw[BL0906_NUM_CHANNELS]; /* Raw RMS value Channel 1..6 */
     float power[BL0906_NUM_CHANNELS];    /* Daya Aktif Channel 1..6 (W) */
     float energy[BL0906_NUM_CHANNELS];   /* Energi Channel 1..6 (kWh) */
     float total_power;                   /* Total Daya Aktif (W) */
