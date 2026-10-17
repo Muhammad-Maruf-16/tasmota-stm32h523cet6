@@ -46,21 +46,13 @@ void MX_UART5_Init(void)
   PB12   ------> UART5_RX
   PB13   ------> UART5_TX
   */
-  GPIO_InitStruct.Pin = BL0906_RX_Pin;
+  GPIO_InitStruct.Pin = BL0906_RX_Pin|BL0906_TX_Pin;
   GPIO_InitStruct.Mode = LL_GPIO_MODE_ALTERNATE;
-  GPIO_InitStruct.Speed = LL_GPIO_SPEED_FREQ_HIGH;
+  GPIO_InitStruct.Speed = LL_GPIO_SPEED_FREQ_LOW;
   GPIO_InitStruct.OutputType = LL_GPIO_OUTPUT_PUSHPULL;
-  GPIO_InitStruct.Pull = LL_GPIO_PULL_UP;
+  GPIO_InitStruct.Pull = LL_GPIO_PULL_NO;
   GPIO_InitStruct.Alternate = LL_GPIO_AF_14;
   LL_GPIO_Init(GPIOB, &GPIO_InitStruct);
-
-  GPIO_InitStruct.Pin = BL0906_TX_Pin;
-  GPIO_InitStruct.Pull = LL_GPIO_PULL_NO;
-  LL_GPIO_Init(GPIOB, &GPIO_InitStruct);
-
-  /* UART5 interrupt Init */
-  NVIC_SetPriority(UART5_IRQn, NVIC_EncodePriority(NVIC_GetPriorityGrouping(),0, 0));
-  NVIC_EnableIRQ(UART5_IRQn);
 
   /* USER CODE BEGIN UART5_Init 1 */
 
@@ -77,7 +69,7 @@ void MX_UART5_Init(void)
   LL_USART_ConfigAsyncMode(UART5);
   LL_USART_Enable(UART5);
   /* USER CODE BEGIN UART5_Init 2 */
-  LL_USART_EnableIT_RXNE_RXFNE(UART5);
+  /* Polling mode: RX interrupt dinonaktifkan agar tidak berebut dengan pembacaan langsung */
   /* USER CODE END UART5_Init 2 */
 
 }

@@ -1,8 +1,8 @@
-../Core/Src/bl0906.c:109:23:BL0906_RxReadByte	2
-../Core/Src/bl0906.c:89:13:BL0906_SendArray	6
-../Core/Src/bl0906.c:127:6:BL0906_RxByteCallback	2
-../Core/Src/bl0906.c:142:6:BL0906_Init	2
-../Core/Src/bl0906.c:164:6:BL0906_SetCalib	2
-../Core/Src/bl0906.c:173:22:BL0906_GetData	1
-../Core/Src/bl0906.c:179:6:BL0906_ResetEnergy	1
-../Core/Src/bl0906.c:186:6:BL0906_Process	18
+../Core/Src/bl0906.c:63:13:BL0906_SendArray	6
+../Core/Src/bl0906.c:120:13:BL0906_ReadReg.constprop	9
+../Core/Src/bl0906.c:105:6:BL0906_RxByteCallback	1
+../Core/Src/bl0906.c:152:6:BL0906_Init	2
+../Core/Src/bl0906.c:172:6:BL0906_SetCalib	2
+../Core/Src/bl0906.c:181:22:BL0906_GetData	1
+../Core/Src/bl0906.c:187:6:BL0906_ResetEnergy	1
+../Core/Src/bl0906.c:194:6:BL0906_Process	11
