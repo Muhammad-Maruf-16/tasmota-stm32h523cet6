@@ -1,4 +1,4 @@
 ../Core/Src/web_config.c:68:13:send_response	152	static
 ../Core/Src/web_config.c:47:13:parse_field	104	static
 ../Core/Src/web_config.c:137:6:WebConfig_Init	0	static
-../Core/Src/web_config.c:143:6:WebConfig_Handle	352	static
+../Core/Src/web_config.c:143:6:WebConfig_Handle	80	static

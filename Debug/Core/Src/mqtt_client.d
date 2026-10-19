@@ -40,7 +40,7 @@ Core/Src/mqtt_client.o: ../Core/Src/mqtt_client.c \
  ../Drivers/STM32H5xx_HAL_Driver/Inc/stm32h5xx_ll_spi.h \
  ../Drivers/STM32H5xx_HAL_Driver/Inc/stm32h5xx_ll_usart.h \
  ../Drivers/STM32H5xx_HAL_Driver/Inc/stm32h5xx_ll_gpio.h \
- ../Core/Inc/can_bus.h ../Core/Inc/secure_packet.h
+ ../Core/Inc/can_bus.h ../Core/Inc/secure_packet.h ../Core/Inc/bl0906.h
 ../Core/Inc/mqtt_client.h:
 ../Core/Inc/mqtt_config.h:
 ../Core/Inc/mqtt_config.h:
@@ -86,3 +86,4 @@ Core/Src/mqtt_client.o: ../Core/Src/mqtt_client.c \
 ../Drivers/STM32H5xx_HAL_Driver/Inc/stm32h5xx_ll_gpio.h:
 ../Core/Inc/can_bus.h:
 ../Core/Inc/secure_packet.h:
+../Core/Inc/bl0906.h:

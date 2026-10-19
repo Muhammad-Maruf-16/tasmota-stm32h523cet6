@@ -83,13 +83,13 @@ static void send_response(uint16_t code, const char *code_str, const char *body)
 // =============================================================================
 static void send_config_json(void)
 {
-    MqttConfig_t cfg;
-    MqttConfig_Load(&cfg);
+    static MqttConfig_t s_get_cfg;
+    MqttConfig_Load(&s_get_cfg);
     // Build preview topic
     static char t_cmnd[96], t_stat[96], t_tele[96];
-    MqttConfig_BuildTopic(&cfg, "cmnd", t_cmnd, sizeof(t_cmnd));
-    MqttConfig_BuildTopic(&cfg, "stat", t_stat, sizeof(t_stat));
-    MqttConfig_BuildTopic(&cfg, "tele", t_tele, sizeof(t_tele));
+    MqttConfig_BuildTopic(&s_get_cfg, "cmnd", t_cmnd, sizeof(t_cmnd));
+    MqttConfig_BuildTopic(&s_get_cfg, "stat", t_stat, sizeof(t_stat));
+    MqttConfig_BuildTopic(&s_get_cfg, "tele", t_tele, sizeof(t_tele));
     static char json[768];
     snprintf(json, sizeof(json),
         "{"
@@ -106,10 +106,10 @@ static void send_config_json(void)
         "\"t_stat\":\"%s\","
         "\"t_tele\":\"%s\""
         "}",
-        cfg.host, cfg.port, cfg.client_id,
-        cfg.user, cfg.password,
-        cfg.topic, cfg.full_topic,
-        cfg.tele_period, cfg.enabled,
+        s_get_cfg.host, s_get_cfg.port, s_get_cfg.client_id,
+        s_get_cfg.user, s_get_cfg.password,
+        s_get_cfg.topic, s_get_cfg.full_topic,
+        s_get_cfg.tele_period, s_get_cfg.enabled,
         t_cmnd, t_stat, t_tele);
     static char hdr[128];
     snprintf(hdr, sizeof(hdr),
@@ -174,32 +174,32 @@ void WebConfig_Handle(uint8_t *rx_buf, uint16_t rx_len)
             return;
         }
         body += 4;
-        MqttConfig_t cfg;
-        memset(&cfg, 0, sizeof(cfg));
-        parse_field(body, "host",        cfg.host,       sizeof(cfg.host));
-        parse_field(body, "client_id",   cfg.client_id,  sizeof(cfg.client_id));
-        parse_field(body, "user",        cfg.user,       sizeof(cfg.user));
-        parse_field(body, "password",    cfg.password,   sizeof(cfg.password));
-        parse_field(body, "topic",       cfg.topic,      sizeof(cfg.topic));
-        parse_field(body, "full_topic",  cfg.full_topic, sizeof(cfg.full_topic));
+        static MqttConfig_t s_post_cfg;
+        memset(&s_post_cfg, 0, sizeof(s_post_cfg));
+        parse_field(body, "host",        s_post_cfg.host,       sizeof(s_post_cfg.host));
+        parse_field(body, "client_id",   s_post_cfg.client_id,  sizeof(s_post_cfg.client_id));
+        parse_field(body, "user",        s_post_cfg.user,       sizeof(s_post_cfg.user));
+        parse_field(body, "password",    s_post_cfg.password,   sizeof(s_post_cfg.password));
+        parse_field(body, "topic",       s_post_cfg.topic,      sizeof(s_post_cfg.topic));
+        parse_field(body, "full_topic",  s_post_cfg.full_topic, sizeof(s_post_cfg.full_topic));
         char tmp[8] = {0};
         parse_field(body, "port", tmp, sizeof(tmp));
-        cfg.port = (uint16_t)atoi(tmp);
-        if (cfg.port == 0) cfg.port = 1883;
+        s_post_cfg.port = (uint16_t)atoi(tmp);
+        if (s_post_cfg.port == 0) s_post_cfg.port = 1883;
         parse_field(body, "tele_period", tmp, sizeof(tmp));
-        cfg.tele_period = (uint16_t)atoi(tmp);
-        if (cfg.tele_period < 10) cfg.tele_period = 300;
+        s_post_cfg.tele_period = (uint16_t)atoi(tmp);
+        if (s_post_cfg.tele_period < 10) s_post_cfg.tele_period = 300;
         parse_field(body, "enabled", tmp, sizeof(tmp));
-        cfg.enabled = (tmp[0] == '1') ? 1 : 0;
+        s_post_cfg.enabled = (tmp[0] == '1') ? 1 : 0;
         // Full topic default jika kosong
-        if (cfg.full_topic[0] == '\0')
+        if (s_post_cfg.full_topic[0] == '\0')
         {
-            strncpy(cfg.full_topic, MQTT_DEFAULT_FULL_TOPIC,
-                    sizeof(cfg.full_topic) - 1);
+            strncpy(s_post_cfg.full_topic, MQTT_DEFAULT_FULL_TOPIC,
+                    sizeof(s_post_cfg.full_topic) - 1);
         }
 
-        cfg.magic = MQTT_CONFIG_MAGIC;
-        int err = MqttConfig_Save(&cfg);
+        s_post_cfg.magic = MQTT_CONFIG_MAGIC;
+        int err = MqttConfig_Save(&s_post_cfg);
         if (err == 0)
         {
             g_config_updated = 1;

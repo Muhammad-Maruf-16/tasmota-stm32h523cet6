@@ -85,7 +85,7 @@
 #define CMD_RECV              0x40
 
 #define W5500_S0_BUF_MASK     0x1FFF
-#define CHUNK_BUFFER_SIZE     (256)
+#define CHUNK_BUFFER_SIZE     (1024)
 
 uint8_t ram_buffer[CHUNK_BUFFER_SIZE];
 /* USER CODE END PD */
@@ -368,6 +368,9 @@ int main(void)
     /* BL0906 Energy Meter Init */
     BL0906_Init();
 
+    /* MQTT Init */
+    MQTT_Init();
+
 #ifdef DEBUG_MQTT
     W5500_WriteReg(0x001E, 0x48, 2);
     W5500_WriteReg(0x001F, 0x48, 2);
@@ -422,6 +425,7 @@ int main(void)
                 MqttConfig_Load(&s_mqtt_cfg);
                 s_cfg_loaded     = 1;
                 g_config_updated = 0;
+                MQTT_Init();
             }
             MQTT_Process(&s_mqtt_cfg);
         }

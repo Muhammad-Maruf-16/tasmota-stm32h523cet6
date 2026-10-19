@@ -14,7 +14,7 @@
 
 #define MQTT_KEEPALIVE_SEC   60     // MQTT keepalive interval
 #define MQTT_CONN_TIMEOUT_MS 5000   // timeout koneksi TCP ke broker
-#define MQTT_BUF_SIZE        512    // buffer TX/RX MQTT packet
+#define MQTT_BUF_SIZE        1024   // buffer TX/RX MQTT packet
 
 // =============================================================================
 // STATE MACHINE

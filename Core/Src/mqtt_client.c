@@ -3,6 +3,7 @@
 #include "main.h"
 #include "can_bus.h"
 #include "secure_packet.h"
+#include "bl0906.h"
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -108,9 +109,34 @@ static uint8_t s_status_step  = 0;
 // =============================================================================
 // SHARED STATIC BUFFER
 // =============================================================================
-static char     s_json[400];
+static char     s_json[1024];
 static char     s_time[24];
 static char     s_uptime[16];
+
+// =============================================================================
+// HELPER: Format float ke string tanpa ketergantungan libc float printf
+// =============================================================================
+static void fmt_f(char *buf, size_t sz, float val, int decimals)
+{
+    long factor = 1;
+    for (int i = 0; i < decimals; i++) factor *= 10;
+
+    int sign = (val < 0.0f) ? -1 : 1;
+    float abs_val = (val < 0.0f) ? -val : val;
+
+    long int_part = (long)abs_val;
+    long dec_part = (long)((abs_val - (float)int_part) * (float)factor + 0.5f);
+    if (dec_part >= factor) {
+        int_part += 1;
+        dec_part = 0;
+    }
+
+    if (sign < 0) {
+        snprintf(buf, sz, "-%ld.%0*ld", int_part, decimals, dec_part);
+    } else {
+        snprintf(buf, sz, "%ld.%0*ld", int_part, decimals, dec_part);
+    }
+}
 
 // =============================================================================
 // HELPER: Tunggu CR clear Socket 2
@@ -359,26 +385,49 @@ static void publish_state(const MqttConfig_t *cfg)
 static void publish_sensor(void)
 {
     format_time(s_time);
+
+    char v_str[16], f_str[16], tp_str[16], te_str[16], t_str[16];
+    fmt_f(v_str,  sizeof(v_str),  g_bl0906_data.voltage,      1);
+    fmt_f(f_str,  sizeof(f_str),  g_bl0906_data.frequency,    1);
+    fmt_f(tp_str, sizeof(tp_str), g_bl0906_data.total_power,  1);
+    fmt_f(te_str, sizeof(te_str), g_bl0906_data.total_energy, 3);
+    fmt_f(t_str,  sizeof(t_str),  g_bl0906_data.temperature,  1);
+
+    static char ch[6][96];
+    for (int i = 0; i < 6; i++)
+    {
+        char c_buf[16], p_buf[16], e_buf[16];
+        fmt_f(c_buf, sizeof(c_buf), g_bl0906_data.current[i], 3);
+        fmt_f(p_buf, sizeof(p_buf), g_bl0906_data.power[i],   1);
+        fmt_f(e_buf, sizeof(e_buf), g_bl0906_data.energy[i],  3);
+        snprintf(ch[i], sizeof(ch[i]),
+                 "\"CH%d\":{\"Current\":%s,\"Power\":%s,\"Energy\":%s}",
+                 i + 1, c_buf, p_buf, e_buf);
+    }
+
     snprintf(s_json, sizeof(s_json),
         "{"
         "\"Time\":\"%s\","
-        "\"Switch1\":\"%s\","
         "\"ENERGY\":{"
-            "\"Voltage\":%d.%d,"
-            "\"Current\":0.000,"
-            "\"Power\":0"
+            "\"Voltage\":%s,"
+            "\"Frequency\":%s,"
+            "\"TotalPower\":%s,"
+            "\"TotalEnergy\":%s,"
+            "%s,%s,%s,%s,%s,%s"
         "},"
-        "\"Temperature\":%d,"
-        "\"Uptime\":%d,"
-        "\"Counter\":%d"
+        "\"BL0906\":{"
+            "\"Temperature\":%s,"
+            "\"Status\":\"%s\","
+            "\"Updates\":%lu"
+        "}"
         "}",
         s_time,
-        g_can_b_data.relay_state ? "ON" : "OFF",
-        g_can_b_data.voltage / 10,
-        g_can_b_data.voltage % 10,
-        g_can_b_data.temperature,
-        g_can_b_data.uptime,
-        g_can_b_data.counter);
+        v_str, f_str, tp_str, te_str,
+        ch[0], ch[1], ch[2], ch[3], ch[4], ch[5],
+        t_str,
+        g_bl0906_data.is_online ? "Online" : "Offline",
+        (unsigned long)g_bl0906_data.update_count);
+
     MQTT_Publish(s_t_sensor, (uint8_t *)s_json, (uint16_t)strlen(s_json));
 }
 
@@ -398,7 +447,7 @@ static void publish_auth(void)
 // =============================================================================
 // PUBLISH tele/INFO1, INFO2, INFO3
 // =============================================================================
-static char s_info_topic[96];
+static char s_info_topic[128];
 
 static void publish_info(const MqttConfig_t *cfg)
 {
@@ -522,22 +571,25 @@ static void publish_status_n(const MqttConfig_t *cfg, uint8_t n)
                 s_time, s_uptime, (unsigned long)s_uptime_sec);
             break;
         case 8:
+        {
             format_time(s_time);
+            char v_str[16], f_str[16], tp_str[16], te_str[16], t_str[16];
+            fmt_f(v_str,  sizeof(v_str),  g_bl0906_data.voltage,      1);
+            fmt_f(f_str,  sizeof(f_str),  g_bl0906_data.frequency,    1);
+            fmt_f(tp_str, sizeof(tp_str), g_bl0906_data.total_power,  1);
+            fmt_f(te_str, sizeof(te_str), g_bl0906_data.total_energy, 3);
+            fmt_f(t_str,  sizeof(t_str),  g_bl0906_data.temperature,  1);
+
             snprintf(s_json, sizeof(s_json),
                 "{\"StatusSNS\":{\"Time\":\"%s\","
-                "\"Switch1\":\"%s\","
-                "\"ENERGY\":{\"Voltage\":%d.%d,"
-                "\"Current\":0.000,\"Power\":0,\"Total\":0.000},"
-                "\"Temperature\":%d,"
-                "\"Uptime\":%d,"
-                "\"Counter\":%d}}",
-                s_time,
-                g_can_b_data.relay_state ? "ON" : "OFF",
-                g_can_b_data.voltage / 10, g_can_b_data.voltage % 10,
-                g_can_b_data.temperature,
-                g_can_b_data.uptime,
-                g_can_b_data.counter);
+                "\"ENERGY\":{\"Voltage\":%s,\"Frequency\":%s,"
+                "\"Power\":%s,\"Total\":%s},"
+                "\"Temperature\":%s,"
+                "\"BL0906\":\"%s\"}}",
+                s_time, v_str, f_str, tp_str, te_str, t_str,
+                g_bl0906_data.is_online ? "Online" : "Offline");
             break;
+        }
         case 9:
             snprintf(s_json, sizeof(s_json),
                 "{\"StatusPWR\":{\"POWER\":\"%s\","
@@ -716,6 +768,8 @@ static void mqtt_handle_incoming(const MqttConfig_t *cfg)
 // =============================================================================
 void MQTT_Init(void)
 {
+    W5500_WriteReg(Sn_CR, S2_REG_OP, CMD_CLOSE);
+    s2_wait_cr(50);
     W5500_WriteReg(0x001E, S2_REG_OP, 2);
     W5500_WriteReg(0x001F, S2_REG_OP, 2);
     g_mqtt_state      = MQTT_STATE_IDLE;
@@ -723,6 +777,8 @@ void MQTT_Init(void)
     g_mqtt_pub_count  = 0;
     s_uptime_sec      = 0;
     s_last_uptime     = g_ms_tick;
+    s_startup_step    = 0;
+    s_pub_interval    = 0;
 }
 
 // =============================================================================
@@ -732,8 +788,18 @@ void MQTT_Process(const MqttConfig_t *cfg)
 {
     if (!cfg->enabled)
     {
-        g_mqtt_state = MQTT_STATE_DISABLED;
+        if (g_mqtt_state != MQTT_STATE_DISABLED)
+        {
+            W5500_WriteReg(Sn_CR, S2_REG_OP, CMD_CLOSE);
+            s2_wait_cr(50);
+            g_mqtt_state = MQTT_STATE_DISABLED;
+        }
         return;
+    }
+
+    if (g_mqtt_state == MQTT_STATE_DISABLED)
+    {
+        g_mqtt_state = MQTT_STATE_IDLE;
     }
 
     if ((g_ms_tick - s_last_uptime) >= 1000)
@@ -752,14 +818,15 @@ void MQTT_Process(const MqttConfig_t *cfg)
     {
         case MQTT_STATE_IDLE:
         {
-            MqttConfig_BuildTopic(cfg, "tele", s_json, 80);
-            snprintf(s_t_lwt,    sizeof(s_t_lwt),    "%sLWT",    s_json);
-            snprintf(s_t_state,  sizeof(s_t_state),  "%sSTATE",  s_json);
-            snprintf(s_t_sensor, sizeof(s_t_sensor), "%sSENSOR", s_json);
-            snprintf(s_t_auth,   sizeof(s_t_auth),   "%sAUTH",   s_json);
-            MqttConfig_BuildTopic(cfg, "stat", s_json, 80);
-            snprintf(s_t_result, sizeof(s_t_result), "%sRESULT", s_json);
-            snprintf(s_t_power,  sizeof(s_t_power),  "%sPOWER",  s_json);
+            char topic_prefix[64];
+            MqttConfig_BuildTopic(cfg, "tele", topic_prefix, sizeof(topic_prefix));
+            snprintf(s_t_lwt,    sizeof(s_t_lwt),    "%sLWT",    topic_prefix);
+            snprintf(s_t_state,  sizeof(s_t_state),  "%sSTATE",  topic_prefix);
+            snprintf(s_t_sensor, sizeof(s_t_sensor), "%sSENSOR", topic_prefix);
+            snprintf(s_t_auth,   sizeof(s_t_auth),   "%sAUTH",   topic_prefix);
+            MqttConfig_BuildTopic(cfg, "stat", topic_prefix, sizeof(topic_prefix));
+            snprintf(s_t_result, sizeof(s_t_result), "%sRESULT", topic_prefix);
+            snprintf(s_t_power,  sizeof(s_t_power),  "%sPOWER",  topic_prefix);
             MqttConfig_BuildTopic(cfg, "cmnd", s_t_cmnd, sizeof(s_t_cmnd));
 
             if (sr != SOCK_CLOSED)
@@ -769,9 +836,13 @@ void MQTT_Process(const MqttConfig_t *cfg)
                 break;
             }
 
+            static uint16_t s_local_port = 49152;
+            s_local_port++;
+            if (s_local_port < 49152 || s_local_port > 65000) s_local_port = 49152;
+
             W5500_WriteReg(Sn_MR,     S2_REG_OP, 0x01);
-            W5500_WriteReg(Sn_PORT,   S2_REG_OP, 0x00);
-            W5500_WriteReg(Sn_PORT+1, S2_REG_OP, 0xC8);
+            W5500_WriteReg(Sn_PORT,   S2_REG_OP, (uint8_t)(s_local_port >> 8));
+            W5500_WriteReg(Sn_PORT+1, S2_REG_OP, (uint8_t)s_local_port);
             W5500_WriteReg(Sn_CR,     S2_REG_OP, CMD_OPEN);
             s2_wait_cr(50);
 
@@ -803,7 +874,7 @@ void MQTT_Process(const MqttConfig_t *cfg)
                 g_mqtt_state = MQTT_STATE_MQTT_CONN;
                 s_tick_ref   = g_ms_tick;
             }
-            else if ((g_ms_tick - s_tick_ref) > MQTT_CONN_TIMEOUT_MS)
+            else if (sr == SOCK_CLOSED || (g_ms_tick - s_tick_ref) > MQTT_CONN_TIMEOUT_MS)
             {
                 W5500_WriteReg(Sn_CR, S2_REG_OP, CMD_CLOSE);
                 s2_wait_cr(50);
@@ -812,6 +883,14 @@ void MQTT_Process(const MqttConfig_t *cfg)
             }
             break;
         case MQTT_STATE_MQTT_CONN:
+            if (sr != SOCK_ESTABLISHED)
+            {
+                W5500_WriteReg(Sn_CR, S2_REG_OP, CMD_CLOSE);
+                s2_wait_cr(50);
+                g_mqtt_state = MQTT_STATE_RECONNECT;
+                s_tick_ref   = g_ms_tick;
+                break;
+            }
             mqtt_handle_incoming(cfg);
             if (g_mqtt_state == MQTT_STATE_CONNECTED) break;
             if ((g_ms_tick - s_tick_ref) > MQTT_CONN_TIMEOUT_MS)

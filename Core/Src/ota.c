@@ -57,7 +57,7 @@ extern volatile uint32_t g_ms_tick;
 #define CMD_RECV              0x40
 
 #define W5500_S0_BUF_MASK     0x1FFF
-#define CHUNK_BUFFER_SIZE     (256)
+#define CHUNK_BUFFER_SIZE     (1024)
 
 /* ==============================================================================
  * FORWARD DECLARATIONS (Fungsi Driver W5500 & Buffer dari main.c)
@@ -207,7 +207,12 @@ void Process_Web_OTA(void)
             }
 
             WebConfig_Handle(ram_buffer, body_in_chunk);
-            for (volatile int d = 0; d < 20000; d++);
+            uint32_t t_flush = g_ms_tick;
+            while (W5500_GetTxFreeSize() < 8192 && (g_ms_tick - t_flush) < 200)
+            {
+                uint8_t sr_cur = W5500_ReadReg(Sn_SR, W5500_S0_REG_OP);
+                if (sr_cur != SOCK_ESTABLISHED && sr_cur != SOCK_CLOSE_WAIT) break;
+            }
             W5500_WriteReg(Sn_CR, W5500_S0_REG_OP, CMD_DISCON);
             while (W5500_ReadReg(Sn_CR, W5500_S0_REG_OP));
             return;
@@ -219,7 +224,12 @@ void Process_Web_OTA(void)
         W5500_WriteReg(Sn_RX_RD + 1, W5500_S0_REG_OP, (uint8_t)rx_rd);
         W5500_WriteReg(Sn_CR, W5500_S0_REG_OP, CMD_RECV);
         while (W5500_ReadReg(Sn_CR, W5500_S0_REG_OP));
-        for (volatile int d = 0; d < 20000; d++);
+        uint32_t t_flush = g_ms_tick;
+        while (W5500_GetTxFreeSize() < 8192 && (g_ms_tick - t_flush) < 200)
+        {
+            uint8_t sr_cur = W5500_ReadReg(Sn_SR, W5500_S0_REG_OP);
+            if (sr_cur != SOCK_ESTABLISHED && sr_cur != SOCK_CLOSE_WAIT) break;
+        }
         W5500_WriteReg(Sn_CR, W5500_S0_REG_OP, CMD_DISCON);
         while (W5500_ReadReg(Sn_CR, W5500_S0_REG_OP));
         return;
