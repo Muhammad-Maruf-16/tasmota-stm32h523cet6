@@ -70,11 +70,11 @@ extern "C" {
 #define BL0906_REG_SOFT_RESET       0x9F
 
 /* Default Calibration Reference Constants (Athom EM6 / Belling standard reference) */
-#define BL0906_DEF_UREF             (0.00083346f)
-#define BL0906_DEF_IREF             (0.0000305f)
-#define BL0906_DEF_PREF             (0.00058388f)
+#define BL0906_DEF_UREF             (0.000083346f) /* 1.097f / 13162.0f (220V RMS = ~2.64M counts) */
+#define BL0906_DEF_IREF             (0.0000167f)
+#define BL0906_DEF_PREF             (0.0058388f)
 #define BL0906_DEF_EREF             (0.0003125f)
-#define BL0906_DEF_WATT_SUM         (0.00058388f)
+#define BL0906_DEF_WATT_SUM         (0.09342f)
 #define BL0906_DEF_CF_SUM           (0.0003125f)
 
 /**
@@ -98,6 +98,7 @@ typedef struct {
     float temperature;                   /* Suhu internal IC (°C) */
     float current[BL0906_NUM_CHANNELS];  /* Arus Channel 1..6 (A) */
     uint32_t arus_raw[BL0906_NUM_CHANNELS]; /* Raw RMS value Channel 1..6 */
+    uint32_t tegangan_raw;               /* Raw RMS Voltage value */
     float power[BL0906_NUM_CHANNELS];    /* Daya Aktif Channel 1..6 (W) */
     float energy[BL0906_NUM_CHANNELS];   /* Energi Channel 1..6 (kWh) */
     float total_power;                   /* Total Daya Aktif (W) */

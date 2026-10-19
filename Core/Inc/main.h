@@ -50,7 +50,7 @@ extern "C" {
 
 /* Exported types ------------------------------------------------------------*/
 /* USER CODE BEGIN ET */
-
+extern volatile uint32_t g_ms_tick;
 /* USER CODE END ET */
 
 /* Exported constants --------------------------------------------------------*/

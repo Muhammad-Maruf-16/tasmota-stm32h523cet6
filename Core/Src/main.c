@@ -98,7 +98,8 @@ uint8_t ram_buffer[CHUNK_BUFFER_SIZE];
 
 /* USER CODE BEGIN PV */
 volatile uint32_t g_ms_tick = 0;
-uint8_t g_phy_reg = 0;
+volatile uint8_t  g_phy_reg = 0;
+volatile uint8_t  g_w5500_version = 0;
 
 /* Variabel dummy untuk CAN bus (dinonaktifkan sementara) */
 CanBoardBData_t g_can_b_data = {0};
@@ -206,13 +207,21 @@ void W5500_InitNetwork(void)
     W5500_WriteReg(0x001F, 0x48, 2);
 
     for (volatile int i = 0; i < 100000; i++);
+
+    g_w5500_version = W5500_ReadReg(0x0039, W5500_COMMON_REG_OP);
+    g_phy_reg = W5500_ReadReg(0x002E, W5500_COMMON_REG_OP);
 }
 
 static inline void W5500_WaitCR(uint8_t block, uint8_t ms)
 {
-    (void)ms;
+    uint32_t t_start = g_ms_tick;
     while (W5500_ReadReg(Sn_CR, block))
-        ;
+    {
+        if ((g_ms_tick - t_start) >= ms)
+        {
+            break;
+        }
+    }
 }
 
 void W5500_SocketOpenListen(uint16_t port)
@@ -232,11 +241,13 @@ void W5500_SocketOpenListen(uint16_t port)
 uint16_t W5500_GetTxFreeSize(void)
 {
     uint16_t fsr1, fsr2;
+    uint32_t t_start = g_ms_tick;
     do {
         fsr1 = ((uint16_t)W5500_ReadReg(Sn_TX_FSR,     W5500_S0_REG_OP) << 8) |
                           W5500_ReadReg(Sn_TX_FSR + 1, W5500_S0_REG_OP);
         fsr2 = ((uint16_t)W5500_ReadReg(Sn_TX_FSR,     W5500_S0_REG_OP) << 8) |
                           W5500_ReadReg(Sn_TX_FSR + 1, W5500_S0_REG_OP);
+        if ((g_ms_tick - t_start) > 50) return 0;
     } while (fsr1 != fsr2);
     return fsr1;
 }
@@ -315,7 +326,7 @@ int main(void)
   /* MCU Configuration--------------------------------------------------------*/
 
   /* Reset of all peripherals, Initializes the Flash interface and the Systick. */
-  NVIC_SetPriorityGrouping(NVIC_PRIORITYGROUP_4);
+  HAL_Init();
 
   /* USER CODE BEGIN Init */
   /* USER CODE END Init */
@@ -349,7 +360,6 @@ int main(void)
 
     /* Web Config & Crypto Init */
     WebConfig_Init();
-    OTA_Init();
     SecurePacket_Init();
 
     /* CAN Bus: Dinonaktifkan sementara */
@@ -419,6 +429,7 @@ int main(void)
         if(g_ms_tick-lTime>=100)
         {
         	LL_GPIO_TogglePin(LED_BUILTIN_GPIO_Port, LED_BUILTIN_Pin);
+        	g_phy_reg = W5500_ReadReg(0x002E, W5500_COMMON_REG_OP);
         	lTime = g_ms_tick;
         }
 
@@ -457,10 +468,10 @@ void SystemClock_Config(void)
   }
 
   LL_RCC_PLL1_SetSource(LL_RCC_PLL1SOURCE_HSE);
-  LL_RCC_PLL1_SetVCOInputRange(LL_RCC_PLLINPUTRANGE_8_16);
+  LL_RCC_PLL1_SetVCOInputRange(LL_RCC_PLLINPUTRANGE_4_8);
   LL_RCC_PLL1_SetVCOOutputRange(LL_RCC_PLLVCORANGE_WIDE);
   LL_RCC_PLL1_SetM(2);
-  LL_RCC_PLL1_SetN(40);
+  LL_RCC_PLL1_SetN(125);
   LL_RCC_PLL1_SetP(2);
   LL_RCC_PLL1_SetQ(2);
   LL_RCC_PLL1_SetR(2);
@@ -485,8 +496,11 @@ void SystemClock_Config(void)
   LL_RCC_SetAPB3Prescaler(LL_RCC_APB3_DIV_1);
   LL_SetSystemCoreClock(250000000);
 
-   /* Update the time base (250 MHz) */
-  LL_Init1msTick(250000000);
+   /* Update the time base */
+  if (HAL_InitTick (TICK_INT_PRIORITY) != HAL_OK)
+  {
+    Error_Handler();
+  }
 }
 
 /**
@@ -496,10 +510,10 @@ void SystemClock_Config(void)
 void PeriphCommonClock_Config(void)
 {
   LL_RCC_PLL2_SetSource(LL_RCC_PLL2SOURCE_HSE);
-  LL_RCC_PLL2_SetVCOInputRange(LL_RCC_PLLINPUTRANGE_8_16);
+  LL_RCC_PLL2_SetVCOInputRange(LL_RCC_PLLINPUTRANGE_4_8);
   LL_RCC_PLL2_SetVCOOutputRange(LL_RCC_PLLVCORANGE_WIDE);
   LL_RCC_PLL2_SetM(2);
-  LL_RCC_PLL2_SetN(40);
+  LL_RCC_PLL2_SetN(125);
   LL_RCC_PLL2_SetP(4);
   LL_RCC_PLL2_SetQ(2);
   LL_RCC_PLL2_SetR(2);

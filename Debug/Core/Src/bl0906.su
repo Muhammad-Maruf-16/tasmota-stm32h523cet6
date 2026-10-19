@@ -1,8 +1,9 @@
-../Core/Src/bl0906.c:63:13:BL0906_SendArray	12	static
-../Core/Src/bl0906.c:120:13:BL0906_ReadReg.constprop	32	static
-../Core/Src/bl0906.c:105:6:BL0906_RxByteCallback	0	static
-../Core/Src/bl0906.c:152:6:BL0906_Init	8	static
-../Core/Src/bl0906.c:172:6:BL0906_SetCalib	0	static
-../Core/Src/bl0906.c:181:22:BL0906_GetData	0	static
-../Core/Src/bl0906.c:187:6:BL0906_ResetEnergy	0	static
-../Core/Src/bl0906.c:194:6:BL0906_Process	48	static
+../Core/Src/bl0906.c:109:13:BL0906_SendArray	12	static
+../Core/Src/bl0906.c:79:13:BL0906_FlushRx	0	static
+../Core/Src/bl0906.c:168:13:BL0906_ReadReg	40	static
+../Core/Src/bl0906.c:216:6:BL0906_Init	8	static
+../Core/Src/bl0906.c:234:22:BL0906_GetData	0	static
+../Core/Src/bl0906.c:242:6:BL0906_SetCalib	0	static
+../Core/Src/bl0906.c:250:6:BL0906_ResetEnergy	8	static
+../Core/Src/bl0906.c:266:6:BL0906_RxByteCallback	0	static
+../Core/Src/bl0906.c:276:6:BL0906_Process	40	static
