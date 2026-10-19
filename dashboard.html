@@ -178,6 +178,9 @@ function showTab(name) {
   });
   document.getElementById('tab-'+name).classList.add('active');
   document.getElementById('nav-'+name).classList.add('active');
+  if(name === 'cfg') {
+    cfgLoad();
+  }
 }
 
 // ============================================================
@@ -243,21 +246,28 @@ function cfgUpdatePreview() {
   document.getElementById('p-tele').innerText=cfgBuildTopic('tele',t,ft);
 }
 async function cfgLoad() {
-  try {
-    var r=await fetch('/config/data');
-    if(!r.ok) return;
-    var d=await r.json();
-    document.getElementById('cfg-host').value  = d.host||'';
-    document.getElementById('cfg-port').value  = d.port||1883;
-    document.getElementById('cfg-cid').value   = d.client_id||'';
-    document.getElementById('cfg-user').value  = d.user||'';
-    document.getElementById('cfg-pass').value  = d.password||'';
-    document.getElementById('cfg-topic').value = d.topic||'';
-    document.getElementById('cfg-ftopic').value= d.full_topic||'%prefix%/%topic%/';
-    document.getElementById('cfg-tele').value  = d.tele_period||300;
-    document.getElementById('cfg-en').checked  = (d.enabled==1);
-    cfgUpdatePreview();
-  } catch(e) {}
+  for (var attempt = 0; attempt < 3; attempt++) {
+    try {
+      var r = await fetch('/config/data');
+      if (!r.ok) throw new Error('status ' + r.status);
+      var d = await r.json();
+      document.getElementById('cfg-host').value  = d.host || '';
+      document.getElementById('cfg-port').value  = d.port || 1883;
+      document.getElementById('cfg-cid').value   = d.client_id || '';
+      document.getElementById('cfg-user').value  = d.user || '';
+      document.getElementById('cfg-pass').value  = d.password || '';
+      document.getElementById('cfg-topic').value = d.topic || '';
+      document.getElementById('cfg-ftopic').value= d.full_topic || '%prefix%/%topic%/';
+      document.getElementById('cfg-tele').value  = d.tele_period || 300;
+      document.getElementById('cfg-en').checked  = (d.enabled == 1);
+      cfgUpdatePreview();
+      return;
+    } catch(e) {
+      if (attempt < 2) {
+        await new Promise(function(resolve) { setTimeout(resolve, 300); });
+      }
+    }
+  }
 }
 function cfgReset() {
   document.getElementById('cfg-host').value  ='192.168.1.100';

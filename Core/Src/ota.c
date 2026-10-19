@@ -96,10 +96,12 @@ void Process_Web_OTA(void)
         return;
     }
 
-    if (sr == SOCK_CLOSE_WAIT || sr == SOCK_FIN_WAIT)
+    if (sr == SOCK_CLOSE_WAIT || sr == SOCK_FIN_WAIT ||
+        sr == 0x1A /* CLOSING */ || sr == 0x1B /* TIME_WAIT */ || sr == 0x1D /* LAST_ACK */)
     {
-        W5500_WriteReg(Sn_CR, W5500_S0_REG_OP, CMD_DISCON);
+        W5500_WriteReg(Sn_CR, W5500_S0_REG_OP, CMD_CLOSE);
         while (W5500_ReadReg(Sn_CR, W5500_S0_REG_OP));
+        W5500_SocketOpenListen(80);
         return;
     }
 
