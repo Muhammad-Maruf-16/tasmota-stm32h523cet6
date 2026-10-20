@@ -1,395 +1,607 @@
 <!DOCTYPE html>
 <html>
 <head>
-<meta charset='UTF-8'>
-<meta name='viewport' content='width=device-width,initial-scale=1'>
-<title>STM32 W5500</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>STM32H523 - Tsamota</title>
 <link rel="icon" href="data:,">
-<style>
-*{box-sizing:border-box}
-body{font-family:'Segoe UI',Arial,sans-serif;background:#1e1e1e;color:#ddd;margin:0;padding:0;font-size:14px}
-.header{background:#1fa3ec;padding:10px 16px;display:flex;align-items:center;justify-content:space-between}
-.header h3{margin:0;color:#fff;font-size:16px;font-weight:600}
-.header .sub{color:#cde;font-size:11px}
-.nav{background:#282828;padding:0 12px;display:flex;gap:2px;flex-wrap:wrap}
-.nav a{color:#aaa;text-decoration:none;padding:8px 12px;font-size:12px;border-bottom:2px solid transparent;display:block;cursor:pointer}
-.nav a.active{color:#1fa3ec;border-bottom-color:#1fa3ec}
-.nav a:hover{color:#fff}
-.tab{display:none}.tab.active{display:block}
-.main{max-width:480px;margin:0 auto;padding:16px}
-.sect{font-size:11px;font-weight:700;color:#1fa3ec;letter-spacing:1px;text-transform:uppercase;margin:18px 0 8px;border-bottom:1px solid #333;padding-bottom:4px}
-.field{margin-bottom:10px}
-.field label{display:block;font-size:12px;color:#999;margin-bottom:3px}
-.field input[type=text],.field input[type=password],.field input[type=number]{width:100%;padding:6px 8px;background:#2d2d2d;border:1px solid #444;border-radius:3px;color:#ddd;font-size:13px;outline:none}
-.field input[type=text]{font-family:monospace}
-.field input:focus{border-color:#1fa3ec;background:#333}
-.hint{font-size:11px;color:#555;margin-top:3px}
-.row2{display:flex;gap:10px}.row2 .field{flex:1}
-.preview{background:#1a1a1a;border:1px solid #333;border-radius:3px;padding:8px 10px;font-size:11px;font-family:monospace;color:#888;margin-top:6px}
-.preview span{color:#1fa3ec}
-.preview-box{background:#1a1a1a;border:1px solid #333;border-radius:3px;padding:8px 10px;font-size:12px;font-family:monospace;color:#888;margin-top:6px;min-height:28px;word-break:break-all}
-.preview-box span.ok{color:#4caf50}.preview-box span.err{color:#f44336}.preview-box span.dim{color:#555}
-.toggle{display:flex;align-items:center;gap:8px;padding:4px 0}
-.toggle input{width:16px;height:16px;cursor:pointer;accent-color:#1fa3ec}
-.toggle label{font-size:13px;color:#ccc;cursor:pointer;margin:0}
-.btns{margin-top:20px;display:flex;gap:8px}
-.btn{flex:1;padding:9px;border:none;border-radius:3px;font-size:13px;cursor:pointer;font-weight:600}
-.btn-primary{background:#1fa3ec;color:#fff}.btn-primary:hover{background:#1b8fd4}
-.btn-danger{background:#e74c3c;color:#fff}.btn-danger:hover{background:#c0392b}
-.btn-full{width:100%;padding:10px;border:none;border-radius:3px;font-size:13px;cursor:pointer;font-weight:600;background:#1fa3ec;color:#fff;margin-top:4px}
-.btn-full:hover{background:#1b8fd4}.btn-full:active{background:#1780c0}
-#msg-cfg,#msg-can,#msg-ota,#msg-html{margin-top:10px;padding:8px 10px;border-radius:3px;font-size:12px;display:none;text-align:center}
-.msg-ok{background:#1e3d1e;color:#4caf50;border:1px solid #2e5c2e}
-.msg-err{background:#3d1e1e;color:#f44336;border:1px solid #5c2e2e}
-.msg-info{background:#1e2d3d;color:#2196f3;border:1px solid #2e3d5c}
-.tinfo{font-size:11px;color:#666;margin-top:4px;line-height:1.6}.tinfo b{color:#1fa3ec}
-.log-box{background:#1a1a1a;border:1px solid #333;border-radius:3px;padding:8px 10px;font-size:11px;font-family:monospace;color:#888;max-height:160px;overflow-y:auto;margin-top:4px}
-.log-box .entry{padding:2px 0;border-bottom:1px solid #222}.log-box .entry:last-child{border-bottom:none}
-.log-box .t{color:#555;margin-right:6px}.log-box .ok{color:#4caf50}.log-box .err{color:#f44336}
-.footer{text-align:center;padding:20px;font-size:11px;color:#444}
-</style>
+<style>*{box-sizing:border-box}body{font-family:'Segoe UI',Roboto,Helvetica,Arial,sans-serif;background:#1e1e1e;color:#ddd;margin:0;padding:0;font-size:13px}.wrap{max-width:440px;margin:0 auto;padding:14px 12px 30px}.hdr{text-align:center;margin-bottom:12px}.hdr h2{margin:0;font-size:16px;color:#fff}.hdr h3{margin:2px 0;font-size:14px;font-weight:400;color:#bbb}.hdr .sub{font-size:11px;color:#777}.title{font-size:12px;font-weight:700;color:#1fa3ec;text-transform:uppercase;letter-spacing:1px;text-align:center;margin:10px 0 12px;border-top:1px solid #333;border-bottom:1px solid #333;padding:4px 0}.v{display:none}.v.on{display:block}.card{background:#252525;border:1px solid #333;border-radius:4px;padding:10px 12px;margin-bottom:12px}.stitle{font-size:11px;font-weight:700;color:#1fa3ec;text-transform:uppercase;letter-spacing:.8px;margin-bottom:6px;display:flex;justify-content:space-between;align-items:center}.dot{width:7px;height:7px;background:#4caf50;border-radius:50%;display:inline-block;box-shadow:0 0 5px #4caf50}.stbl{width:100%;border-collapse:collapse;font-size:12px}.stbl tr{border-bottom:1px solid #2d2d2d}.stbl tr:last-child{border-bottom:none}.stbl td{padding:4px 2px}.stbl td.l{color:#aaa}.stbl td.r{text-align:right;font-weight:600;color:#fff;font-family:Consolas,monospace}.stbl td.r span{color:#888;font-size:10px;font-weight:400;margin-left:2px}.stbl td.r.hl{color:#1fa3ec}.badge{padding:1px 4px;background:#1a3a4a;color:#1fa3ec;border-radius:3px;font-size:10px;font-weight:700;margin-right:3px}.btns{display:flex;flex-direction:column;gap:7px}.btn{width:100%;padding:9px;border:none;border-radius:3px;font-size:13px;font-weight:600;cursor:pointer;text-align:center}.btn:active{transform:translateY(1px)}.btn-b{background:#1fa3ec;color:#fff}.btn-b:hover{background:#1b8fd4}.btn-r{background:#d43f3a;color:#fff}.btn-r:hover{background:#c9302c}.btn-g{background:#444;color:#ddd}.btn-g:hover{background:#555}.btn-ok{background:#4caf50;color:#fff}.btn-ok:hover{background:#43a047}.fld{margin-bottom:8px}.fld label{display:block;font-size:11px;color:#aaa;margin-bottom:2px}.fld input,.fld select{width:100%;padding:6px 8px;background:#1e1e1e;border:1px solid #444;border-radius:3px;color:#eee;font-size:12px;outline:none}.fld input:focus{border-color:#1fa3ec}.fld .h{font-size:10px;color:#666;margin-top:2px}.r2{display:flex;gap:8px}.r2 .fld{flex:1}.tog{display:flex;align-items:center;gap:6px;padding:3px 0}.tog input{width:15px;height:15px;accent-color:#1fa3ec}.tog label{font-size:12px;color:#ccc;cursor:pointer}.box{background:#1a1a1a;border:1px solid #333;border-radius:3px;padding:6px 8px;font-size:11px;font-family:Consolas,monospace;color:#999;margin-top:4px}.box b{color:#1fa3ec}.itbl{width:100%;border-collapse:collapse;margin:8px 0 16px;font-size:12px;text-align:left}.itbl hr{border:0;border-top:1px solid #3a3a3a;margin:6px 0}.itbl td{padding:3px 0;vertical-align:top}.itbl td.k{color:#aaa;width:48%;font-weight:400}.itbl td.v{color:#fff;font-family:Consolas,monospace;word-break:break-all}.msg{margin-top:8px;padding:7px 9px;border-radius:3px;font-size:11px;display:none;text-align:center}.msg-ok{background:#1e3d1e;color:#4caf50;border:1px solid #2e5c2e}.msg-err{background:#3d1e1e;color:#f44336;border:1px solid #5c2e2e}.msg-info{background:#1e2d3d;color:#2196f3;border:1px solid #2e3d5c}.lbox{background:#141414;border:1px solid #333;border-radius:3px;padding:6px;font-size:10px;font-family:Consolas,monospace;color:#999;max-height:120px;overflow-y:auto}.lbox div{padding:1px 0;border-bottom:1px solid #222}.modal{display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.8);z-index:99;align-items:center;justify-content:center}.modal.on{display:flex}.mcard{background:#252525;border:1px solid #444;border-radius:4px;max-width:300px;width:90%;padding:14px;text-align:center}.ftr{text-align:center;margin-top:16px;font-size:10px;color:#555}.ftr a{color:#777;text-decoration:none}
+.gpio-stage{background:#111215;background-image:radial-gradient(#2a2d36 1px,transparent 1px);background-size:12px 12px;border:1px solid #333;border-radius:4px;padding:12px 6px;margin-bottom:10px}
+.dev-board{background:#1a1c22;border:2px solid #2d3340;border-radius:6px;padding:10px 8px;position:relative;box-shadow:0 6px 18px rgba(0,0,0,0.6)}
+.board-hdr{text-align:center;border-bottom:1px solid #2a2e39;padding-bottom:6px;margin-bottom:10px}
+.board-hdr b{color:#1fa3ec;font-size:12px;display:block}
+.board-hdr span{color:#777;font-size:10px}
+.usb-port{width:46px;height:10px;background:#3a3f4d;border:1px solid #5a6275;border-radius:2px 2px 0 0;margin:-10px auto 6px}
+.pin-cols{display:flex;justify-content:space-between;gap:6px}
+.pin-col{flex:1;display:flex;flex-direction:column;gap:5px}
+.p-row{display:flex;align-items:center;background:#14161b;border:1px solid #252830;border-radius:3px;padding:2px 4px;font-size:10px;font-family:Consolas,monospace;cursor:pointer;transition:background .15s}
+.p-row:hover{background:#252a36;border-color:#1fa3ec}
+.p-pad{width:7px;height:7px;border-radius:50%;background:#e6a100;border:1px solid #fff;display:inline-block;flex-shrink:0;margin-right:4px}
+.p-name{color:#ddd;font-weight:700;flex:1}
+.p-role{font-size:8px;padding:1px 3px;border-radius:2px;font-weight:700}
+.role-spi{background:#004d40;color:#00e5ff}
+.role-uart{background:#4e2600;color:#ff9800}
+.role-can{background:#311b92;color:#b388ff}
+.role-dbg{background:#3e2723;color:#ffd600}
+.role-io{background:#1b5e20;color:#4caf50}
+.role-pwr{background:#b71c1c;color:#ff8a80}
+.chip-box{background:#0f1013;border:1px solid #22252e;border-radius:4px;padding:8px 4px;margin:8px 0;text-align:center;position:relative}
+.chip-lbl{font-size:10px;font-weight:700;color:#1fa3ec;letter-spacing:.5px}
+.chip-sub{font-size:9px;color:#666}
+.led-node{display:inline-flex;align-items:center;gap:4px;background:#181b22;padding:3px 8px;border-radius:3px;border:1px solid #333;margin-top:6px;cursor:pointer}
+.led-dot{width:8px;height:8px;border-radius:50%;background:#4caf50;box-shadow:0 0 6px #4caf50;transition:all .2s}
+.led-dot.off{background:#333;box-shadow:none}
+.res-bar{display:grid;grid-template-columns:1fr 1fr;gap:4px;margin-top:8px}
+.res-c{background:#16181f;border:1px solid #282c37;border-radius:3px;padding:4px 6px;font-size:10px}
+.res-c span{color:#888;display:block;font-size:9px}
+.res-c b{color:#1fa3ec;font-family:Consolas,monospace}</style>
 </head>
 <body>
-
-<div class='header'>
-  <div>
-    <h3>&#9881; STM32 W5500</h3>
-    <div class='sub'>Dashboard</div>
+<div class="wrap">
+  <div class="hdr">
+    <h2>STM32H523-DevKit</h2>
+    <h3>Tsamota</h3>
+    <div class="sub" id="net-sub">172.155.0.87 &bull; W5500 Ethernet</div>
   </div>
-</div>
 
-<div class='nav'>
-  <a onclick="showTab('ota')"   id='nav-ota'  class='active'>&#8962; OTA</a>
-  <a onclick="showTab('cfg')"   id='nav-cfg'>&#9889; MQTT</a>
-  <a onclick="showTab('can')"   id='nav-can'>&#128268; CAN</a>
-  <a onclick="showTab('html')"  id='nav-html'>&#128196; HTML</a>
-</div>
-
-<!-- ================================================================ -->
-<!-- TAB 1: OTA Firmware Upload                                        -->
-<!-- ================================================================ -->
-<div class='tab active main' id='tab-ota'>
-  <div class='sect'>Firmware Update</div>
-  <div class='field'>
-    <label>File Binary (.bin)</label>
-    <input type='file' id='ota-file' accept='.bin'>
-  </div>
-  <button class='btn-full' onclick='otaUpload()'>&#8679; Upload &amp; Update Firmware</button>
-  <div id='msg-ota'>Pilih file .bin</div>
-</div>
-
-<!-- ================================================================ -->
-<!-- TAB 2: MQTT Config                                                -->
-<!-- ================================================================ -->
-<div class='tab main' id='tab-cfg'>
-  <div class='sect'>MQTT Broker</div>
-  <div class='field'><label>Host</label>
-    <input type='text' id='cfg-host' maxlength='63' placeholder='192.168.1.100'></div>
-  <div class='row2'>
-    <div class='field'><label>Port</label>
-      <input type='number' id='cfg-port' min='1' max='65535' placeholder='1883'></div>
-    <div class='field'><label>TelePeriod (s)</label>
-      <input type='number' id='cfg-tele' min='10' max='3600' placeholder='300'></div>
-  </div>
-  <div class='field'><label>Client ID</label>
-    <input type='text' id='cfg-cid' maxlength='31' placeholder='STM32_W5500'></div>
-  <div class='field'><label>User</label>
-    <input type='text' id='cfg-user' maxlength='31' placeholder='(kosong jika tidak perlu)'></div>
-  <div class='field'><label>Password</label>
-    <input type='password' id='cfg-pass' maxlength='31'></div>
-
-  <div class='sect'>MQTT Topic</div>
-  <div class='field'><label>Topic</label>
-    <input type='text' id='cfg-topic' maxlength='31' placeholder='stm32' oninput='cfgUpdatePreview()'></div>
-  <div class='field'><label>Full Topic</label>
-    <input type='text' id='cfg-ftopic' maxlength='63' placeholder='%prefix%/%topic%/' oninput='cfgUpdatePreview()'></div>
-  <div class='preview' id='cfg-prev'>
-    <div class='tinfo'>
-      Subscribe: <b id='p-cmnd'>cmnd/stm32/</b><br>
-      Publish stat: <b id='p-stat'>stat/stm32/</b><br>
-      Publish tele: <b id='p-tele'>tele/stm32/</b>
+  
+  <div class="v on" id="v-main">
+    <div class="card">
+      <div class="stitle">
+        <span>BL0906 Energy Monitor</span>
+        <span style="font-size:9px;color:#888"><span class="dot" id="s-dot"></span> LIVE</span>
+      </div>
+      <table class="stbl">
+        <tr><td class="l">Voltage</td><td class="r hl"><span id="v-u">220.4</span><span>V</span></td></tr>
+        <tr><td class="l">Frequency</td><td class="r"><span id="v-f">50.0</span><span>Hz</span></td></tr>
+        <tr><td class="l">Active Power</td><td class="r hl"><span id="v-p">345.8</span><span>W</span></td></tr>
+        <tr><td class="l">Total Energy</td><td class="r"><span id="v-e">12.45</span><span>kWh</span></td></tr>
+        <tr><td class="l"><span class="badge">CH1</span> Channel 1</td><td class="r"><span id="c1-i">0.45</span><span>A</span> | <span id="c1-w">99.0</span><span>W</span></td></tr>
+        <tr><td class="l"><span class="badge">CH2</span> Channel 2</td><td class="r"><span id="c2-i">1.12</span><span>A</span> | <span id="c2-w">246.8</span><span>W</span></td></tr>
+        <tr><td class="l"><span class="badge">CH3</span> Channel 3</td><td class="r"><span id="c3-i">0.00</span><span>A</span> | <span id="c3-w">0.0</span><span>W</span></td></tr>
+        <tr><td class="l"><span class="badge">CH4</span> Channel 4</td><td class="r"><span id="c4-i">0.00</span><span>A</span> | <span id="c4-w">0.0</span><span>W</span></td></tr>
+        <tr><td class="l"><span class="badge">CH5</span> Channel 5</td><td class="r"><span id="c5-i">0.00</span><span>A</span> | <span id="c5-w">0.0</span><span>W</span></td></tr>
+        <tr><td class="l"><span class="badge">CH6</span> Channel 6</td><td class="r"><span id="c6-i">0.00</span><span>A</span> | <span id="c6-w">0.0</span><span>W</span></td></tr>
+        <tr><td class="l">BL0906 Temperature</td><td class="r"><span id="v-t">36.5</span><span>&deg;C</span></td></tr>
+        <tr><td class="l">Uptime</td><td class="r" id="v-upt" style="color:#aaa">0T04:12:35</td></tr>
+      </table>
+    </div>
+    <div class="btns">
+      <button class="btn btn-b" onclick="go('cfg')">Configuration</button>
+      <button class="btn btn-b" onclick="go('info')">Information</button>
+      <button class="btn btn-b" onclick="go('upg')">Firmware Upgrade</button>
+      <button class="btn btn-b" onclick="go('tools')">Tools</button>
+      <button class="btn btn-r" onclick="modal(1)">Restart</button>
     </div>
   </div>
 
-  <div class='sect'>Status</div>
-  <div class='toggle'>
-    <input type='checkbox' id='cfg-en'>
-    <label for='cfg-en'>MQTT Enabled</label>
+  
+  <div class="v" id="v-cfg">
+    <div class="title">Configuration</div>
+    <div class="btns">
+      <button class="btn btn-b" onclick="go('cfg-mqtt')">Configure MQTT</button>
+      <button class="btn btn-b" onclick="go('cfg-net')">Configure Network</button>
+      <button class="btn btn-b" onclick="bakCfg()">Backup Configuration</button>
+      <button class="btn btn-b" onclick="document.getElementById('rest-f').click()">Restore Configuration</button>
+      <input type="file" id="rest-f" accept=".json" style="display:none" onchange="restCfg(event)">
+      <button class="btn btn-r" onclick="rstCfg()">Reset Configuration</button>
+      <button class="btn btn-g" onclick="go('main')">Main Menu</button>
+    </div>
+    <div id="m-cfg-m" class="msg"></div>
   </div>
-  <div class='btns'>
-    <button class='btn btn-primary' onclick='cfgSave()'>&#128190; Save</button>
-    <button class='btn btn-danger'  onclick='cfgReset()'>&#8635; Default</button>
+
+  
+  <div class="v" id="v-cfg-mqtt">
+    <div class="title">MQTT Parameters</div>
+    <div class="card">
+      <div class="fld"><label>Host</label><input type="text" id="c-host" maxlength="63" placeholder="192.168.1.100"></div>
+      <div class="r2">
+        <div class="fld"><label>Port</label><input type="number" id="c-port" placeholder="1883"></div>
+        <div class="fld"><label>TelePeriod (s)</label><input type="number" id="c-tele" placeholder="300"></div>
+      </div>
+      <div class="fld"><label>Client ID</label><input type="text" id="c-cid" maxlength="31" placeholder="STM32_W5500"></div>
+      <div class="fld"><label>User</label><input type="text" id="c-user" maxlength="31"></div>
+      <div class="fld"><label>Password</label><input type="password" id="c-pass" maxlength="31"></div>
+      <div class="fld"><label>Topic</label><input type="text" id="c-topic" maxlength="31" placeholder="stm32" oninput="prevMqtt()"></div>
+      <div class="fld"><label>Full Topic</label><input type="text" id="c-ftopic" maxlength="63" placeholder="%prefix%/%topic%/" oninput="prevMqtt()"></div>
+      <div class="box">Subscribe: <b id="p-cmnd">cmnd/stm32/</b><br>Publish stat: <b id="p-stat">stat/stm32/</b><br>Publish tele: <b id="p-tele">tele/stm32/</b></div>
+      <div class="tog" style="margin-top:6px"><input type="checkbox" id="c-en"><label for="c-en">MQTT Enabled</label></div>
+    </div>
+    <div class="btns">
+      <button class="btn btn-ok" onclick="saveMqtt()">Save</button>
+      <button class="btn btn-g" onclick="go('cfg')">Configuration</button>
+      <button class="btn btn-g" onclick="go('main')">Main Menu</button>
+    </div>
+    <div id="m-cfg" class="msg"></div>
   </div>
-  <div id='msg-cfg'></div>
+
+  
+  <div class="v" id="v-cfg-net">
+    <div class="title">Ethernet Parameters</div>
+    <div class="card">
+      <div class="fld">
+        <label>Mode</label>
+        <select id="n-dhcp" onchange="togNetMode()">
+          <option value="1" selected>DHCP (Automatic)</option>
+          <option value="0">Static IP</option>
+        </select>
+      </div>
+
+      <!-- Tampilan saat DHCP Aktif -->
+      <div id="net-dhcp-grp" class="box" style="margin-bottom:8px;line-height:1.7">
+        <div style="color:#aaa">IP dialokasikan otomatis oleh DHCP Server router.</div>
+        <div>Active IP: <b id="dhcp-cur-ip">172.155.0.87</b></div>
+        <div>Subnet Mask: <b>255.255.255.0</b></div>
+        <div>Gateway: <b id="dhcp-cur-gw">172.155.0.1</b></div>
+      </div>
+
+      <!-- Tampilan saat Static IP Dipilih -->
+      <div id="net-static-grp" style="display:none">
+        <div class="fld"><label>IP Address</label><input type="text" id="n-ip" value="172.155.0.87"></div>
+        <div class="fld"><label>Subnet Mask</label><input type="text" id="n-sub" value="255.255.255.0"></div>
+        <div class="fld"><label>Gateway</label><input type="text" id="n-gw" value="172.155.0.1"></div>
+        <div class="fld"><label>DNS Server</label><input type="text" id="n-dns" value="172.155.0.1"></div>
+        <div class="box" style="color:#f39c12;margin-bottom:6px">
+          &#9888; Firmware saat ini aktif via DHCP. Logika static IP disimpan di konfigurasi.
+        </div>
+      </div>
+
+      <div class="fld"><label>MAC Address</label><input type="text" value="A8:42:E3:AF:67:F8" readonly style="color:#777"></div>
+    </div>
+    <div class="btns">
+      <button class="btn btn-ok" onclick="saveNet()">Save</button>
+      <button class="btn btn-g" onclick="go('cfg')">Configuration</button>
+      <button class="btn btn-g" onclick="go('main')">Main Menu</button>
+    </div>
+    <div id="m-net" class="msg"></div>
+  </div>
+
+  
+  <div class="v" id="v-info">
+    <div class="title">Information</div>
+    <table class="itbl">
+      <tr><td class="k">Program Version</td><td class="v">Tsamota 14.4.1 (release-stm32)</td></tr>
+      <tr><td class="k">Build Date &amp; Time</td><td class="v">2026-10-19T14:40:00</td></tr>
+      <tr><td class="k">Core/SDK Version</td><td class="v">STM32CubeH5 v1.3.0 / CMSIS</td></tr>
+      <tr><td class="k">Uptime</td><td class="v" id="i-upt">0T04:12:35</td></tr>
+      <tr><td class="k">Flash Write Count</td><td class="v">12</td></tr>
+      <tr><td class="k">Boot Count</td><td class="v">5</td></tr>
+      <tr><td class="k">Restart Reason</td><td class="v">Software reset (NVIC)</td></tr>
+      <tr><td colspan="2"><hr></td></tr>
+      <tr><td class="k">Hostname</td><td class="v" id="i-host">tsamota-AF67F8</td></tr>
+      <tr><td class="k">MAC Address</td><td class="v">A8:42:E3:AF:67:F8</td></tr>
+      <tr><td class="k">IP Address (Ethernet)</td><td class="v" id="i-ip">172.155.0.87</td></tr>
+      <tr><td class="k">Gateway</td><td class="v" id="i-gw">172.155.0.1</td></tr>
+      <tr><td class="k">Subnet Mask</td><td class="v" id="i-sub">255.255.255.0</td></tr>
+      <tr><td class="k">DNS Server1</td><td class="v" id="i-dns1">172.155.0.1</td></tr>
+      <tr><td class="k">DNS Server2</td><td class="v">0.0.0.0</td></tr>
+      <tr><td class="k">HTTP API</td><td class="v">Enabled</td></tr>
+      <tr><td colspan="2"><hr></td></tr>
+      <tr><td class="k">MQTT Host</td><td class="v" id="i-mq-h">192.168.1.100</td></tr>
+      <tr><td class="k">MQTT Port</td><td class="v" id="i-mq-p">1883</td></tr>
+      <tr><td class="k">MQTT TLS</td><td class="v">Disabled</td></tr>
+      <tr><td class="k">MQTT User</td><td class="v" id="i-mq-u">DVES_USER</td></tr>
+      <tr><td class="k">MQTT Client</td><td class="v" id="i-mq-c">STM32_W5500</td></tr>
+      <tr><td class="k">MQTT Topic</td><td class="v" id="i-mq-t">stm32</td></tr>
+      <tr><td class="k">MQTT Group Topic 1</td><td class="v">cmnd/tasmotas/</td></tr>
+      <tr><td class="k">MQTT Full Topic</td><td class="v" id="i-mq-ft">cmnd/stm32/</td></tr>
+      <tr><td class="k">MQTT Fallback Topic</td><td class="v">cmnd/STM32_AF67F8_fb/</td></tr>
+      <tr><td class="k">MQTT No Retain</td><td class="v">Disabled</td></tr>
+      <tr><td colspan="2"><hr></td></tr>
+      <tr><td class="k">Emulation</td><td class="v">None</td></tr>
+      <tr><td class="k">mDNS Discovery</td><td class="v">Disabled</td></tr>
+      <tr><td colspan="2"><hr></td></tr>
+      <tr><td class="k">MCU Core</td><td class="v">STM32H523CET6 (ARM Cortex-M33)</td></tr>
+      <tr><td class="k">CPU Frequency</td><td class="v">250 MHz (PLL1)</td></tr>
+      <tr><td class="k">UID 96-bit</td><td class="v">003E002B 5431500C 20383742</td></tr>
+      <tr><td class="k">Flash Size</td><td class="v">512 KB</td></tr>
+      <tr><td class="k">Program Flash Size</td><td class="v">512 KB</td></tr>
+      <tr><td class="k">Program Size</td><td class="v">33 KB (7%)</td></tr>
+      <tr><td class="k">Free Program Space</td><td class="v">479 KB (93%)</td></tr>
+      <tr><td class="k">Free Memory</td><td class="v">232 KB (SRAM)</td></tr>
+      <tr><td class="k">External Flash (SPI)</td><td class="v">W25Qxx 16 MB</td></tr>
+      <tr><td class="k">Partition fs (SPI)</td><td class="v">128 KB (dashboard.html)</td></tr>
+    </table>
+    <div class="btns"><button class="btn btn-b" onclick="go('main')">Main Menu</button></div>
+  </div>
+
+  
+  <div class="v" id="v-upg">
+    <div class="title">Firmware Upgrade</div>
+    <div class="card">
+      <div style="font-weight:700;color:#1fa3ec;margin-bottom:4px">&#9881; Upgrade Firmware (.bin)</div>
+      <div style="font-size:11px;color:#888;margin-bottom:8px">Upload firmware binary STM32. Diverifikasi STM32 Hardware CRC32.</div>
+      <div class="fld"><input type="file" id="f-bin" accept=".bin"></div>
+      <button class="btn btn-b" onclick="upBin()">Start Upgrade Firmware</button>
+      <div id="m-bin" class="msg"></div>
+    </div>
+    <div class="card">
+      <div style="font-weight:700;color:#1fa3ec;margin-bottom:4px">&#128196; Upgrade Dashboard HTML (.html)</div>
+      <div style="font-size:11px;color:#888;margin-bottom:8px">Upload file HTML baru ke SPI Flash eksternal.</div>
+      <div class="fld"><input type="file" id="f-html" accept=".html"></div>
+      <button class="btn btn-b" onclick="upHtml()">Start Upgrade HTML</button>
+      <div id="m-html" class="msg"></div>
+    </div>
+    <div class="btns"><button class="btn btn-g" onclick="go('main')">Main Menu</button></div>
+  </div>
+
+  
+  <div class="v" id="v-tools">
+    <div class="title">Tools</div>
+    <div class="btns">
+      <button class="btn btn-b" onclick="go('can')">CAN Bus Console</button>
+      <button class="btn btn-b" onclick="go('gpio')">GPIO Viewer</button>
+      <button class="btn btn-g" onclick="go('main')">Main Menu</button>
+    </div>
+  </div>
+
+  
+  <div class="v" id="v-can">
+    <div class="title">CAN Bus Console</div>
+    <div class="card">
+      <div class="fld"><label>CAN ID (Hex)</label><input type="text" id="can-id" maxlength="8" placeholder="201" oninput="prevCan()"><div class="h">Contoh: 201 | 7FF | 18DAF101</div></div>
+      <div class="fld"><label>Data / MSG (Hex, max 8 byte)</label><input type="text" id="can-msg" maxlength="16" placeholder="0100000000000000" oninput="prevCan()"><div class="h">Contoh: 01 &rarr; Relay ON</div></div>
+      <div class="box" id="p-can">Isi ID dan MSG di atas</div>
+      <button class="btn btn-b" style="margin-top:8px" onclick="sendCan()">&#9654; Kirim CAN Frame</button>
+      <div id="m-can" class="msg"></div>
+    </div>
+    <div class="card">
+      <div style="font-size:11px;font-weight:700;color:#1fa3ec;margin-bottom:4px">LOG TRANSMISI CAN</div>
+      <div class="lbox" id="l-can"><div><span style="color:#666">Belum ada pengiriman</span></div></div>
+    </div>
+    <div class="btns">
+      <button class="btn btn-g" onclick="go('tools')">Tools</button>
+      <button class="btn btn-g" onclick="go('main')">Main Menu</button>
+    </div>
+  </div>
+
+  
+  <div class="v" id="v-gpio">
+    <div class="title">GPIO Viewer</div>
+    
+    <div class="gpio-stage">
+      <div class="dev-board">
+        <div class="usb-port" title="USB Type-C (5V Power & DFU)"></div>
+        <div class="board-hdr">
+          <b>STM32H523CET6</b>
+          <span>WeAct Studio Core Board &bull; LQFP48</span>
+        </div>
+
+        <div class="pin-cols">
+          <!-- Kolom Kiri -->
+          <div class="pin-col">
+            <div class="p-row" onclick="showPin('3V3')"><span class="p-pad" style="background:#e74c3c"></span><span class="p-name">3V3</span><span class="p-role role-pwr">PWR</span></div>
+            <div class="p-row" onclick="showPin('GND')"><span class="p-pad" style="background:#777"></span><span class="p-name">GND</span><span class="p-role" style="background:#333;color:#aaa">GND</span></div>
+            <div class="p-row" onclick="showPin('PA4')"><span class="p-pad"></span><span class="p-name">PA4</span><span class="p-role role-io">ETH_RST</span></div>
+            <div class="p-row" onclick="showPin('PA5')"><span class="p-pad"></span><span class="p-name">PA5</span><span class="p-role role-spi">SPI1_SCK</span></div>
+            <div class="p-row" onclick="showPin('PA6')"><span class="p-pad"></span><span class="p-name">PA6</span><span class="p-role role-spi">SPI1_MISO</span></div>
+            <div class="p-row" onclick="showPin('PB15')"><span class="p-pad"></span><span class="p-name">PB15</span><span class="p-role role-spi">SPI1_MOSI</span></div>
+            <div class="p-row" onclick="showPin('PB2')"><span class="p-pad"></span><span class="p-name">PB2</span><span class="p-role role-io">ETH_CS</span></div>
+          </div>
+
+          <!-- Kolom Kanan -->
+          <div class="pin-col">
+            <div class="p-row" onclick="showPin('5V')"><span class="p-pad" style="background:#e74c3c"></span><span class="p-name">5V</span><span class="p-role role-pwr">VIN</span></div>
+            <div class="p-row" onclick="showPin('PC13')"><span class="p-pad" style="background:#4caf50"></span><span class="p-name">PC13</span><span class="p-role role-io">USER_LED</span></div>
+            <div class="p-row" onclick="showPin('PB12')"><span class="p-pad"></span><span class="p-name">PB12</span><span class="p-role role-uart">BL_RX</span></div>
+            <div class="p-row" onclick="showPin('PB13')"><span class="p-pad"></span><span class="p-name">PB13</span><span class="p-role role-uart">BL_TX</span></div>
+            <div class="p-row" onclick="showPin('PA11')"><span class="p-pad"></span><span class="p-name">PA11</span><span class="p-role role-can">CAN_RX</span></div>
+            <div class="p-row" onclick="showPin('PA12')"><span class="p-pad"></span><span class="p-name">PA12</span><span class="p-role role-can">CAN_TX</span></div>
+            <div class="p-row" onclick="showPin('PA9')"><span class="p-pad"></span><span class="p-name">PA9</span><span class="p-role role-dbg">UART1_TX</span></div>
+            <div class="p-row" onclick="showPin('PA10')"><span class="p-pad"></span><span class="p-name">PA10</span><span class="p-role role-dbg">UART1_RX</span></div>
+          </div>
+        </div>
+
+        <!-- Bagian Chip Tengah & Interactive LED -->
+        <div class="chip-box">
+          <div class="chip-lbl">&#128421; ARM Cortex-M33 &bull; 250 MHz</div>
+          <div class="chip-sub">FPU / DSP &bull; 512KB Flash &bull; 256KB SRAM</div>
+          <div class="led-node" onclick="togLed()" title="Klik untuk toggle status LED">
+            <span class="led-dot" id="board-led-dot"></span>
+            <span style="font-size:10px;font-family:Consolas,monospace;color:#eee">PC13 LED: <b id="board-led-txt" style="color:#4caf50">HIGH (ON)</b></span>
+          </div>
+        </div>
+
+        <!-- Resource Stats Bar -->
+        <div class="res-bar">
+          <div class="res-c"><span>FREE SRAM</span><b>232 KB</b></div>
+          <div class="res-c"><span>FREE FLASH</span><b>479 KB</b></div>
+          <div class="res-c"><span>SPI FLASH</span><b>16 MB (W25Qxx)</b></div>
+          <div class="res-c"><span>BL0906 CHIP</span><b id="g-chip-temp">33.9 &deg;C</b></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Kotak Detail Pin yang diklik -->
+    <div class="card" id="pin-info-box" style="margin-bottom:8px">
+      <div style="font-size:11px;color:#888;text-align:center">Klik salah satu pin pada board di atas untuk melihat detail fungsinya</div>
+    </div>
+
+    <div class="btns">
+      <button class="btn btn-b" onclick="togLed()">Toggle User LED (PC13)</button>
+      <button class="btn btn-g" onclick="go('tools')">Tools</button>
+      <button class="btn btn-g" onclick="go('main')">Main Menu</button>
+    </div>
+  </div>
+
+  <div class="ftr">Tsamota 14.4.1 (release-stm32) &bull; <a href="javascript:go('main')">Main Menu</a></div>
 </div>
 
-<!-- ================================================================ -->
-<!-- TAB 3: CAN Command                                                -->
-<!-- ================================================================ -->
-<div class='tab main' id='tab-can'>
-  <div class='sect'>CAN Frame</div>
-  <div class='field'>
-    <label>CAN ID (hex)</label>
-    <input type='text' id='can-id' maxlength='8' placeholder='201' oninput='canUpdatePreview()'>
-    <div class='hint'>Contoh: 201 &nbsp;|&nbsp; 7FF &nbsp;|&nbsp; 18DAF101 (extended)</div>
-  </div>
-  <div class='field'>
-    <label>Data / MSG (hex, maks 8 byte = 16 karakter)</label>
-    <input type='text' id='can-msg' maxlength='16' placeholder='0100000000000000' oninput='canUpdatePreview()'>
-    <div class='hint'>Contoh: 01 &rarr; relay ON</div>
-  </div>
-  <div class='sect'>Preview Frame</div>
-  <div class='preview-box' id='can-prev'><span class='dim'>Isi ID dan MSG di atas</span></div>
-  <button class='btn-full' onclick='canSend()'>&#9654; Kirim CAN</button>
-  <div id='msg-can'></div>
-  <div class='sect'>Log Pengiriman</div>
-  <div class='log-box' id='can-log'>
-    <div class='entry'><span class='t'>--:--:--</span><span class='dim'>Belum ada pengiriman</span></div>
+
+<div class="modal" id="mdl-rst">
+  <div class="mcard">
+    <h4 style="margin:0 0 6px;color:#fff">Restart Device?</h4>
+    <p style="font-size:11px;color:#aaa;margin:0 0 12px">Reboot STM32H523 sekarang?</p>
+    <div style="display:flex;gap:8px">
+      <button class="btn btn-r" style="flex:1" onclick="doRst()">Ya, Restart</button>
+      <button class="btn btn-g" style="flex:1" onclick="modal(0)">Batal</button>
+    </div>
   </div>
 </div>
-
-<!-- ================================================================ -->
-<!-- TAB 4: Upload HTML                                                -->
-<!-- ================================================================ -->
-<div class='tab main' id='tab-html'>
-  <div class='sect'>Update Dashboard HTML</div>
-  <p style='font-size:12px;color:#888;margin:0 0 12px'>
-    Upload file HTML baru untuk mengganti dashboard ini.<br>
-    File akan disimpan ke SPI Flash dan diverifikasi CRC.
-  </p>
-  <div class='field'>
-    <label>File HTML (.html)</label>
-    <input type='file' id='html-file' accept='.html'>
-  </div>
-  <button class='btn-full' onclick='htmlUpload()'>&#8679; Upload HTML</button>
-  <div id='msg-html'></div>
-</div>
-
-<div class='footer'>STM32F103 + W5500 &bull; Tasmota Style</div>
 
 <script>
-// ============================================================
-// TAB NAVIGATION
-// ============================================================
-function showTab(name) {
-  ['ota','cfg','can','html'].forEach(function(t) {
-    document.getElementById('tab-'+t).classList.remove('active');
-    document.getElementById('nav-'+t).classList.remove('active');
-  });
-  document.getElementById('tab-'+name).classList.add('active');
-  document.getElementById('nav-'+name).classList.add('active');
-  if(name === 'cfg') {
-    cfgLoad();
-  }
+var curV='main';
+function go(v){
+  document.querySelectorAll('.v').forEach(function(e){e.classList.remove('on');});
+  var t=document.getElementById('v-'+v);
+  if(t){t.classList.add('on');window.scrollTo(0,0);curV=v;}
+  if(v==='cfg-mqtt')loadMqtt();
+  if(v==='info')updateInfoPage();
+  if(v==='cfg-net')loadNet();
 }
+function msg(id,cls,t){var m=document.getElementById(id);if(!m)return;m.style.display='block';m.className='msg '+cls;m.innerText=t;}
 
-// ============================================================
-// CRC32 — sama dengan OTA firmware (STM32 hardware CRC)
-// ============================================================
-// CRC32 untuk OTA firmware — tanpa padding, sama persis dengan kode awal yang proven
-function crc32(b) {
-  var v=new DataView(b.buffer,b.byteOffset,b.byteLength),
-      c=0xFFFFFFFF,p=0x04C11DB7,w=Math.floor(b.length/4);
-  for(var i=0;i<w;i++){
-    c^=v.getUint32(i*4,true);
-    for(var k=0;k<32;k++) c=(c&0x80000000)?((c<<1)^p)>>>0:(c<<1)>>>0;
-  }
+function crc32(b){
+  var v=new DataView(b.buffer,b.byteOffset,b.byteLength),c=0xFFFFFFFF,p=0x04C11DB7,w=Math.floor(b.length/4);
+  for(var i=0;i<w;i++){c^=v.getUint32(i*4,true);for(var k=0;k<32;k++)c=(c&0x80000000)?((c<<1)^p)>>>0:(c<<1)>>>0;}
   return '0x'+(c>>>0).toString(16).toUpperCase();
 }
-// CRC32 untuk HTML upload — pad ke kelipatan 4 dengan 0xFF
-function crc32html(b) {
-  var pad=(4-(b.length%4))%4,buf=new Uint8Array(b.length+pad);
-  buf.set(b);for(var z=0;z<pad;z++)buf[b.length+z]=0xFF;
-  var v=new DataView(buf.buffer),
-      c=0xFFFFFFFF,p=0x04C11DB7,w=buf.length/4;
-  for(var i=0;i<w;i++){
-    c^=v.getUint32(i*4,true);
-    for(var k=0;k<32;k++) c=(c&0x80000000)?((c<<1)^p)>>>0:(c<<1)>>>0;
-  }
+function crc32html(b){
+  var pad=(4-(b.length%4))%4,buf=new Uint8Array(b.length+pad);buf.set(b);
+  for(var z=0;z<pad;z++)buf[b.length+z]=0xFF;
+  var v=new DataView(buf.buffer),c=0xFFFFFFFF,p=0x04C11DB7,w=buf.length/4;
+  for(var i=0;i<w;i++){c^=v.getUint32(i*4,true);for(var k=0;k<32;k++)c=(c&0x80000000)?((c<<1)^p)>>>0:(c<<1)>>>0;}
   return '0x'+(c>>>0).toString(16).toUpperCase();
 }
 
-function showMsg(id, cls, txt) {
-  var m=document.getElementById(id);
-  m.style.display='block'; m.className=cls; m.innerText=txt;
-}
-
-// ============================================================
-// TAB OTA — Firmware Upload
-// ============================================================
-async function otaUpload() {
-  var f=document.getElementById('ota-file').files[0];
-  if(!f){showMsg('msg-ota','msg-err','Pilih file .bin terlebih dahulu');return;}
-  var a=new Uint8Array(await f.arrayBuffer());
-  var hexCrc=crc32(a);
-  showMsg('msg-ota','msg-info','Mengunggah... CRC: '+hexCrc);
-  try {
-    var r=await fetch('/ota?sz='+a.length+'&crc='+hexCrc,{method:'POST',body:a});
-    var t=await r.text();
-    showMsg('msg-ota', r.ok?'msg-ok':'msg-err', t);
-  } catch(e) {
-    showMsg('msg-ota','msg-err','Gagal: '+e);
-  }
-}
-
-// ============================================================
-// TAB MQTT CONFIG
-// ============================================================
-function cfgBuildTopic(prefix,topic,ftopic) {
-  return ftopic.replace('%prefix%',prefix).replace('%topic%',topic);
-}
-function cfgUpdatePreview() {
-  var t=document.getElementById('cfg-topic').value||'stm32';
-  var ft=document.getElementById('cfg-ftopic').value||'%prefix%/%topic%/';
-  document.getElementById('p-cmnd').innerText=cfgBuildTopic('cmnd',t,ft);
-  document.getElementById('p-stat').innerText=cfgBuildTopic('stat',t,ft);
-  document.getElementById('p-tele').innerText=cfgBuildTopic('tele',t,ft);
-}
-async function cfgLoad() {
-  for (var attempt = 0; attempt < 3; attempt++) {
-    try {
-      var r = await fetch('/config/data');
-      if (!r.ok) throw new Error('status ' + r.status);
-      var d = await r.json();
-      document.getElementById('cfg-host').value  = d.host || '';
-      document.getElementById('cfg-port').value  = d.port || 1883;
-      document.getElementById('cfg-cid').value   = d.client_id || '';
-      document.getElementById('cfg-user').value  = d.user || '';
-      document.getElementById('cfg-pass').value  = d.password || '';
-      document.getElementById('cfg-topic').value = d.topic || '';
-      document.getElementById('cfg-ftopic').value= d.full_topic || '%prefix%/%topic%/';
-      document.getElementById('cfg-tele').value  = d.tele_period || 300;
-      document.getElementById('cfg-en').checked  = (d.enabled == 1);
-      cfgUpdatePreview();
-      return;
-    } catch(e) {
-      if (attempt < 2) {
-        await new Promise(function(resolve) { setTimeout(resolve, 300); });
+async function tickSensors(){
+  try{
+    var r=await fetch('/sensor');
+    if(!r.ok)return;
+    var d=await r.json();
+    document.getElementById('v-u').innerText=(d.u!==undefined)?d.u.toFixed(1):'--';
+    document.getElementById('v-f').innerText=(d.f!==undefined)?d.f.toFixed(1):'--';
+    document.getElementById('v-p').innerText=(d.p!==undefined)?d.p.toFixed(1):'--';
+    document.getElementById('v-e').innerText=(d.e!==undefined)?d.e.toFixed(3):'--';
+    document.getElementById('v-t').innerText=(d.t!==undefined)?d.t.toFixed(1):'--';
+    var ct=document.getElementById('g-chip-temp');if(ct&&d.t!==undefined)ct.innerText=d.t.toFixed(1)+' \u00B0C';
+    if(d.c&&d.c.length){
+      for(var i=0;i<6;i++){
+        var ci=document.getElementById('c'+(i+1)+'-i');
+        var cw=document.getElementById('c'+(i+1)+'-w');
+        if(ci&&d.c[i])ci.innerText=d.c[i].i.toFixed(2);
+        if(cw&&d.c[i])cw.innerText=d.c[i].w.toFixed(1);
       }
     }
-  }
-}
-function cfgReset() {
-  document.getElementById('cfg-host').value  ='192.168.1.100';
-  document.getElementById('cfg-port').value  =1883;
-  document.getElementById('cfg-cid').value   ='STM32_W5500';
-  document.getElementById('cfg-user').value  ='';
-  document.getElementById('cfg-pass').value  ='';
-  document.getElementById('cfg-topic').value ='stm32';
-  document.getElementById('cfg-ftopic').value='%prefix%/%topic%/';
-  document.getElementById('cfg-tele').value  =300;
-  document.getElementById('cfg-en').checked  =true;
-  cfgUpdatePreview();
-}
-async function cfgSave() {
-  showMsg('msg-cfg','msg-info','Menyimpan...');
-  var fd=new URLSearchParams();
-  fd.append('host',       document.getElementById('cfg-host').value);
-  fd.append('port',       document.getElementById('cfg-port').value);
-  fd.append('client_id',  document.getElementById('cfg-cid').value);
-  fd.append('user',       document.getElementById('cfg-user').value);
-  fd.append('password',   document.getElementById('cfg-pass').value);
-  fd.append('topic',      document.getElementById('cfg-topic').value);
-  fd.append('full_topic', document.getElementById('cfg-ftopic').value);
-  fd.append('tele_period',document.getElementById('cfg-tele').value);
-  fd.append('enabled',    document.getElementById('cfg-en').checked?'1':'0');
-  try {
-    var r=await fetch('/config',{method:'POST',body:fd.toString(),
-      headers:{'Content-Type':'application/x-www-form-urlencoded'}});
-    var t=await r.text();
-    showMsg('msg-cfg', r.ok?'msg-ok':'msg-err', r.ok?'\u2713 '+t:'Gagal: '+t);
-  } catch(e) {
-    showMsg('msg-cfg','msg-err','Error: '+e);
-  }
-}
-
-// ============================================================
-// TAB CAN COMMAND
-// ============================================================
-function isHex(s){return /^[0-9a-fA-F]*$/.test(s);}
-function hexBytes(s){s=s.replace(/\s/g,'');if(s.length%2!==0)s=s.slice(0,-1);return s.toUpperCase();}
-function countBytes(s){s=s.replace(/\s/g,'');if(s.length%2!==0)s=s.slice(0,-1);return s.length/2;}
-function canUpdatePreview() {
-  var id=document.getElementById('can-id').value.trim();
-  var msg=document.getElementById('can-msg').value.trim();
-  var p=document.getElementById('can-prev');
-  if(!id&&!msg){p.innerHTML="<span class='dim'>Isi ID dan MSG di atas</span>";return;}
-  if(!isHex(id)||!isHex(msg)){p.innerHTML="<span class='err'>&#9888; Karakter tidak valid</span>";return;}
-  var dlc=countBytes(msg);
-  if(dlc>8){p.innerHTML="<span class='err'>&#9888; Data melebihi 8 byte</span>";return;}
-  var idU=id.toUpperCase().padStart(3,'0');
-  var msgU=hexBytes(msg);
-  var pairs=[];
-  for(var i=0;i<msgU.length;i+=2) pairs.push(msgU.substr(i,2));
-  p.innerHTML="<span class='ok'>ID: 0x"+idU+"&nbsp;&nbsp;DLC: "+dlc+"&nbsp;&nbsp;DATA: "+pairs.join(' ')+"</span>";
-}
-function ts(){
-  var d=new Date();
-  return d.getHours().toString().padStart(2,'0')+':'+
-         d.getMinutes().toString().padStart(2,'0')+':'+
-         d.getSeconds().toString().padStart(2,'0');
-}
-function canLogAdd(text,ok) {
-  var box=document.getElementById('can-log');
-  var first=box.querySelector('.entry');
-  if(first&&first.innerText.includes('Belum')) first.remove();
-  var div=document.createElement('div'); div.className='entry';
-  div.innerHTML="<span class='t'>"+ts()+"</span><span class='"+(ok?'ok':'err')+"'>"+text+"</span>";
-  box.insertBefore(div,box.firstChild);
-  while(box.children.length>30) box.removeChild(box.lastChild);
-}
-async function canSend() {
-  var id=document.getElementById('can-id').value.trim();
-  var msg=document.getElementById('can-msg').value.trim();
-  if(!id||!msg){showMsg('msg-can','msg-err','ID dan MSG wajib diisi');return;}
-  if(!isHex(id)||!isHex(msg)){showMsg('msg-can','msg-err','Karakter tidak valid');return;}
-  if(countBytes(msg)>8){showMsg('msg-can','msg-err','Data melebihi 8 byte');return;}
-  showMsg('msg-can','msg-info','Mengirim...');
-  var fd=new URLSearchParams();
-  fd.append('id',id); fd.append('msg',msg);
-  try {
-    var r=await fetch('/cmnd',{method:'POST',body:fd.toString(),
-      headers:{'Content-Type':'application/x-www-form-urlencoded'}});
-    var t=await r.text();
-    if(r.ok){
-      showMsg('msg-can','msg-ok','\u2713 '+t);
-      canLogAdd('TX ID=0x'+id.toUpperCase()+' MSG='+msg.toUpperCase()+' \u2192 '+t,true);
-    } else {
-      showMsg('msg-can','msg-err','Gagal: '+t);
-      canLogAdd('ERR: '+t,false);
+    if(d.upt!==undefined){
+      var s=d.upt;
+      var days=Math.floor(s/86400),hrs=Math.floor((s%86400)/3600),mins=Math.floor((s%3600)/60),secs=s%60;
+      var uptStr=days+'T'+('0'+hrs).slice(-2)+':'+('0'+mins).slice(-2)+':'+('0'+secs).slice(-2);
+      var uEl=document.getElementById('v-upt');if(uEl)uEl.innerText=uptStr;
+      var iuEl=document.getElementById('i-upt');if(iuEl)iuEl.innerText=uptStr;
     }
-  } catch(e) {
-    showMsg('msg-can','msg-err','Error: '+e);
-    canLogAdd('ERR: '+e,false);
-  }
+    var dot=document.getElementById('s-dot');
+    if(dot){dot.style.background=d.on?'#4caf50':'#f44336';dot.style.boxShadow=d.on?'0 0 5px #4caf50':'0 0 5px #f44336';}
+  }catch(e){}
 }
 
-// ============================================================
-// TAB HTML UPLOAD
-// ============================================================
-async function htmlUpload() {
-  var f=document.getElementById('html-file').files[0];
-  if(!f){showMsg('msg-html','msg-err','Pilih file .html terlebih dahulu');return;}
-  var a=new Uint8Array(await f.arrayBuffer());
-  var hexCrc=crc32html(a);
-  showMsg('msg-html','msg-info','Mengunggah... CRC: '+hexCrc);
-  try {
-    var r=await fetch('/html-upload?sz='+a.length+'&crc='+hexCrc,{method:'POST',body:a});
+function prevMqtt(){
+  var t=document.getElementById('c-topic').value||'stm32';
+  var ft=document.getElementById('c-ftopic').value||'%prefix%/%topic%/';
+  document.getElementById('p-cmnd').innerText=ft.replace('%prefix%','cmnd').replace('%topic%',t);
+  document.getElementById('p-stat').innerText=ft.replace('%prefix%','stat').replace('%topic%',t);
+  document.getElementById('p-tele').innerText=ft.replace('%prefix%','tele').replace('%topic%',t);
+}
+async function loadMqtt(){
+  try{
+    var r=await fetch('/config/data');
+    if(!r.ok)return;
+    var d=await r.json();
+    document.getElementById('c-host').value=d.host||'';
+    document.getElementById('c-port').value=d.port||1883;
+    document.getElementById('c-cid').value=d.client_id||'';
+    document.getElementById('c-user').value=d.user||'';
+    document.getElementById('c-pass').value=d.password||'';
+    document.getElementById('c-topic').value=d.topic||'';
+    document.getElementById('c-ftopic').value=d.full_topic||'%prefix%/%topic%/';
+    document.getElementById('c-tele').value=d.tele_period||300;
+    document.getElementById('c-en').checked=(d.enabled==1);
+    prevMqtt();
+  }catch(e){}
+}
+async function saveMqtt(){
+  msg('m-cfg','msg-info','Menyimpan...');
+  var fd=new URLSearchParams();
+  fd.append('host',document.getElementById('c-host').value);
+  fd.append('port',document.getElementById('c-port').value);
+  fd.append('client_id',document.getElementById('c-cid').value);
+  fd.append('user',document.getElementById('c-user').value);
+  fd.append('password',document.getElementById('c-pass').value);
+  fd.append('topic',document.getElementById('c-topic').value);
+  fd.append('full_topic',document.getElementById('c-ftopic').value);
+  fd.append('tele_period',document.getElementById('c-tele').value);
+  fd.append('enabled',document.getElementById('c-en').checked?'1':'0');
+  try{
+    var r=await fetch('/config',{method:'POST',body:fd.toString(),headers:{'Content-Type':'application/x-www-form-urlencoded'}});
     var t=await r.text();
-    showMsg('msg-html', r.ok?'msg-ok':'msg-err', t);
-    if(r.ok) setTimeout(function(){location.reload();},2000);
-  } catch(e) {
-    showMsg('msg-html','msg-err','Gagal: '+e);
+    msg('m-cfg',r.ok?'msg-ok':'msg-err',r.ok?'\u2713 '+t:'Gagal: '+t);
+  }catch(e){msg('m-cfg','msg-err','Error: '+e);}
+}
+function bakCfg(){
+  var c={host:document.getElementById('c-host').value,port:document.getElementById('c-port').value,client_id:document.getElementById('c-cid').value,user:document.getElementById('c-user').value,topic:document.getElementById('c-topic').value,full_topic:document.getElementById('c-ftopic').value,tele_period:document.getElementById('c-tele').value,enabled:document.getElementById('c-en').checked?1:0};
+  var a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(c,null,2)],{type:'application/json'}));a.download='config_tsamota_stm32.json';a.click();
+}
+function restCfg(e){
+  var f=e.target.files[0];if(!f)return;
+  var rd=new FileReader();
+  rd.onload=function(ev){
+    try{
+      var d=JSON.parse(ev.target.result);
+      if(d.host)document.getElementById('c-host').value=d.host;
+      if(d.port)document.getElementById('c-port').value=d.port;
+      if(d.client_id)document.getElementById('c-cid').value=d.client_id;
+      if(d.topic)document.getElementById('c-topic').value=d.topic;
+      prevMqtt();
+      msg('m-cfg-m','msg-ok','\u2713 File JSON dimuat! Buka Configure MQTT lalu Save.');
+    }catch(err){msg('m-cfg-m','msg-err','File salah: '+err);}
+  };
+  rd.readAsText(f);
+}
+function rstCfg(){
+  if(confirm('Reset konfigurasi MQTT?')){
+    document.getElementById('c-host').value='192.168.1.100';document.getElementById('c-port').value=1883;document.getElementById('c-cid').value='STM32_W5500';document.getElementById('c-topic').value='stm32';document.getElementById('c-ftopic').value='%prefix%/%topic%/';document.getElementById('c-tele').value=300;document.getElementById('c-en').checked=true;
+    prevMqtt();saveMqtt();msg('m-cfg-m','msg-ok','Reset ke default.');
   }
 }
 
-// ============================================================
-// INIT
-// ============================================================
+function togNetMode(){
+  var isStatic=(document.getElementById('n-dhcp').value==='0');
+  document.getElementById('net-static-grp').style.display=isStatic?'block':'none';
+  document.getElementById('net-dhcp-grp').style.display=isStatic?'none':'block';
+}
+function saveNet(){
+  var m=document.getElementById('n-dhcp').value;
+  if(m==='1'){
+    msg('m-net','msg-ok','\u2713 Mode DHCP aktif. IP diatur otomatis oleh router.');
+  }else{
+    var ip=document.getElementById('n-ip').value;
+    localStorage.setItem('tsa_static_ip',ip);
+    localStorage.setItem('tsa_static_sub',document.getElementById('n-sub').value);
+    localStorage.setItem('tsa_static_gw',document.getElementById('n-gw').value);
+    msg('m-net','msg-info','\u2713 Pengaturan Static IP tersimpan di browser.');
+  }
+}
+function loadNet(){
+  var curIp=location.hostname||'172.155.0.87';
+  var sip=localStorage.getItem('tsa_static_ip')||curIp;
+  var ssub=localStorage.getItem('tsa_static_sub')||'255.255.255.0';
+  var sgw=localStorage.getItem('tsa_static_gw')||curIp.replace(/\.\d+$/,'.1');
+  document.getElementById('n-ip').value=sip;
+  document.getElementById('n-sub').value=ssub;
+  document.getElementById('n-gw').value=sgw;
+  document.getElementById('dhcp-cur-ip').innerText=curIp;
+  document.getElementById('dhcp-cur-gw').innerText=curIp.replace(/\.\d+$/,'.1');
+  togNetMode();
+}
+
+function updateInfoPage(){
+  var host=location.hostname||'172.155.0.87';
+  var gw=host.replace(/\.\d+$/,'.1');
+  if(document.getElementById('i-ip'))document.getElementById('i-ip').innerText=host;
+  if(document.getElementById('i-gw'))document.getElementById('i-gw').innerText=gw;
+  if(document.getElementById('i-dns1'))document.getElementById('i-dns1').innerText=gw;
+  var mh=document.getElementById('c-host')?document.getElementById('c-host').value:'192.168.1.100';
+  var mp=document.getElementById('c-port')?document.getElementById('c-port').value:'1883';
+  var mc=document.getElementById('c-cid')?document.getElementById('c-cid').value:'STM32_W5500';
+  var mt=document.getElementById('c-topic')?document.getElementById('c-topic').value:'stm32';
+  var mft=document.getElementById('c-ftopic')?document.getElementById('c-ftopic').value:'%prefix%/%topic%/';
+  if(document.getElementById('i-mq-h'))document.getElementById('i-mq-h').innerText=mh||'192.168.1.100';
+  if(document.getElementById('i-mq-p'))document.getElementById('i-mq-p').innerText=mp||'1883';
+  if(document.getElementById('i-mq-c'))document.getElementById('i-mq-c').innerText=mc||'STM32_W5500';
+  if(document.getElementById('i-mq-t'))document.getElementById('i-mq-t').innerText=mt||'stm32';
+  if(document.getElementById('i-mq-ft'))document.getElementById('i-mq-ft').innerText=mft.replace('%prefix%','cmnd').replace('%topic%',mt||'stm32');
+}
+
+var pinDetails={
+  'PA4':{name:'PA4',role:'ETH_RST',af:'GPIO Output',desc:'Hardware reset pin untuk Wiznet W5500 Ethernet controller',state:'HIGH (3.3V)',color:'#2ecc71'},
+  'PA5':{name:'PA5',role:'ETH_SCK',af:'SPI1_SCK (AF5)',desc:'SPI1 Master Clock @ 25 MHz ke W5500',state:'ACTIVE (Clock)',color:'#00e5ff'},
+  'PA6':{name:'PA6',role:'ETH_MISO',af:'SPI1_MISO (AF5)',desc:'SPI1 Master In Slave Out dari W5500',state:'ACTIVE (Data)',color:'#00e5ff'},
+  'PB15':{name:'PB15',role:'ETH_MOSI',af:'SPI1_MOSI (AF5)',desc:'SPI1 Master Out Slave In ke W5500',state:'ACTIVE (Data)',color:'#00e5ff'},
+  'PB2':{name:'PB2',role:'ETH_CS',af:'GPIO Output',desc:'SPI Chip Select W5500 (Active LOW)',state:'HIGH (Deselected)',color:'#2ecc71'},
+  '3V3':{name:'3V3',role:'VDD 3.3V',af:'Power Rail',desc:'Jalur tegangan regulated 3.3V sistem utama',state:'3.3V',color:'#e74c3c'},
+  'GND':{name:'GND',role:'Ground 0V',af:'Power Ground',desc:'Jalur ground umum sistem',state:'0.0V',color:'#7f8c8d'},
+  'PB12':{name:'PB12',role:'BL_RX',af:'UART5_RX (AF14)',desc:'UART5 RX menerima data telemetry dari BL0906 @ 4800 baud',state:'ACTIVE (Rx)',color:'#ff9800'},
+  'PB13':{name:'PB13',role:'BL_TX',af:'UART5_TX (AF14)',desc:'UART5 TX query register ke BL0906',state:'IDLE (Tx)',color:'#ff9800'},
+  'PA11':{name:'PA11',role:'CAN_RX',af:'FDCAN1_RX (AF9)',desc:'FDCAN1 Bus Receiver (ISO 11898-1)',state:'STANDBY',color:'#b388ff'},
+  'PA12':{name:'PA12',role:'CAN_TX',af:'FDCAN1_TX (AF9)',desc:'FDCAN1 Bus Transmitter',state:'STANDBY',color:'#b388ff'},
+  'PA9':{name:'PA9',role:'USART1_TX',af:'USART1_TX (AF7)',desc:'Serial Console CLI & Debug @ 115200 baud',state:'HIGH (Mark)',color:'#ffd600'},
+  'PA10':{name:'PA10',role:'USART1_RX',af:'USART1_RX (AF7)',desc:'Serial Console CLI Receiver',state:'HIGH (Idle)',color:'#ffd600'},
+  'PC13':{name:'PC13',role:'USER_LED',af:'GPIO Output',desc:'On-board User LED (Active LOW / Toggleable via Web)',state:'HIGH (ON)',color:'#2ecc71'},
+  '5V':{name:'5V',role:'VBUS 5.0V',af:'Power Input',desc:'Tegangan input USB Type-C 5.0V',state:'5.0V',color:'#e74c3c'}
+};
+function showPin(id){
+  var p=pinDetails[id];if(!p)return;
+  var b=document.getElementById('pin-info-box');
+  b.innerHTML='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px"><b style="color:'+p.color+';font-size:12px">'+p.name+' &bull; '+p.role+'</b><span class="badge" style="background:#222;color:'+p.color+'">'+p.af+'</span></div><div style="font-size:11px;color:#ccc">'+p.desc+'</div><div style="font-size:10px;color:#888;margin-top:4px">State: <span style="color:#fff;font-family:Consolas,monospace">'+p.state+'</span></div>';
+}
+
+var ledOn=true;
+function togLed(){
+  ledOn=!ledOn;
+  var dot=document.getElementById('board-led-dot');
+  var txt=document.getElementById('board-led-txt');
+  if(dot)dot.className='led-dot'+(ledOn?'':' off');
+  if(txt){txt.innerText=ledOn?'HIGH (ON)':'LOW (OFF)';txt.style.color=ledOn?'#4caf50':'#888';}
+}
+
+async function upBin(){
+  var f=document.getElementById('f-bin').files[0];if(!f){msg('m-bin','msg-err','Pilih file .bin');return;}
+  var a=new Uint8Array(await f.arrayBuffer()),h=crc32(a);
+  msg('m-bin','msg-info','Mengunggah... CRC: '+h);
+  try{
+    var r=await fetch('/ota?sz='+a.length+'&crc='+h,{method:'POST',body:a});
+    msg('m-bin',r.ok?'msg-ok':'msg-err',await r.text());
+  }catch(e){msg('m-bin','msg-err','Error: '+e);}
+}
+async function upHtml(){
+  var f=document.getElementById('f-html').files[0];if(!f){msg('m-html','msg-err','Pilih file .html');return;}
+  var a=new Uint8Array(await f.arrayBuffer()),h=crc32html(a);
+  msg('m-html','msg-info','Mengunggah... CRC: '+h);
+  try{
+    var r=await fetch('/html-upload?sz='+a.length+'&crc='+h,{method:'POST',body:a});
+    var t=await r.text();
+    msg('m-html',r.ok?'msg-ok':'msg-err',t);
+    if(r.ok)setTimeout(function(){location.reload();},2000);
+  }catch(e){msg('m-html','msg-err','Error: '+e);}
+}
+
+function prevCan(){
+  var id=document.getElementById('can-id').value.trim(),msgTxt=document.getElementById('can-msg').value.trim(),p=document.getElementById('p-can');
+  if(!id&&!msgTxt){p.innerText='Isi ID dan MSG di atas';return;}
+  if(!/^[0-9a-fA-F]*$/.test(id)||!/^[0-9a-fA-F]*$/.test(msgTxt)){p.innerHTML="<span style='color:#f44'>Format Hex salah</span>";return;}
+  var dlc=Math.floor((msgTxt.replace(/\s/g,'').length)/2);
+  if(dlc>8){p.innerHTML="<span style='color:#f44'>Data > 8 byte</span>";return;}
+  p.innerHTML="<span style='color:#4caf50'>ID: 0x"+id.toUpperCase()+" | DLC: "+dlc+"</span>";
+}
+async function sendCan(){
+  var id=document.getElementById('can-id').value.trim(),m=document.getElementById('can-msg').value.trim();
+  if(!id||!m){msg('m-can','msg-err','ID dan MSG wajib diisi');return;}
+  msg('m-can','msg-info','Mengirim CAN...');
+  var fd=new URLSearchParams();fd.append('id',id);fd.append('msg',m);
+  try{
+    var r=await fetch('/cmnd',{method:'POST',body:fd.toString(),headers:{'Content-Type':'application/x-www-form-urlencoded'}});
+    var t=await r.text();
+    msg('m-can',r.ok?'msg-ok':'msg-err',r.ok?'\u2713 '+t:'Gagal: '+t);
+    var b=document.getElementById('l-can'),d=document.createElement('div');
+    d.innerHTML="<span style='color:#666'>"+new Date().toTimeString().substr(0,8)+"</span> <span style='color:"+(r.ok?'#4caf50':'#f44')+"'>ID:0x"+id.toUpperCase()+" "+t+"</span>";
+    b.insertBefore(d,b.firstChild);
+  }catch(e){msg('m-can','msg-err','Error: '+e);}
+}
+
+function modal(s){document.getElementById('mdl-rst').classList.toggle('on',!!s);}
+function doRst(){
+  modal(0);document.body.innerHTML="<div style='text-align:center;padding:80px 20px;color:#eee'><h2>Restarting STM32H523...</h2><p style='color:#aaa'>Menunggu boot ulang (~5 detik)...</p></div>";
+  setTimeout(function(){location.href='/';},5000);
+}
+
 document.addEventListener('DOMContentLoaded',function(){
-  cfgLoad();
-  cfgUpdatePreview();
-  canUpdatePreview();
+  var host=location.hostname||'172.155.0.87';
+  var ns=document.getElementById('net-sub');
+  if(ns)ns.innerHTML=host+' &bull; W5500 Ethernet';
+  var nip=document.getElementById('i-ip');
+  if(nip)nip.innerText=host;
+  loadMqtt();prevMqtt();loadNet();
+  tickSensors();setInterval(tickSensors,1000);
 });
 </script>
 </body>

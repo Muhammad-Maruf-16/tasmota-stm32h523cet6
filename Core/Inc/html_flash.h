@@ -8,8 +8,8 @@
 // =============================================================================
 #define HTML_FLASH_META_ADDR    0x00210000U   // Meta: size + CRC (8 byte)
 #define HTML_FLASH_DATA_ADDR    0x00211000U   // Data: file HTML gabungan (max 4 sektor = 16KB)
-#define HTML_FLASH_DATA_SECTORS 8U            // Jumlah sektor yang di-erase saat upload
-#define HTML_FLASH_DATA_MAX     (32U * 1024U) // Batas maksimal ukuran HTML (16KB)
+#define HTML_FLASH_DATA_SECTORS 32U           // Jumlah sektor yang di-erase saat upload (32 x 4KB = 128KB)
+#define HTML_FLASH_DATA_MAX     (128U * 1024U)// Batas maksimal ukuran HTML (128KB)
 
 // Magic number untuk validasi meta
 #define HTML_FLASH_MAGIC        0x484D4C21U   // "HML!"

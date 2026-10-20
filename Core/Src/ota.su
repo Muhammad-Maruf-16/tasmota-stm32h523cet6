@@ -1,0 +1,5 @@
+Drivers/CMSIS/Include/core_cm33.h:2711:34:__NVIC_SystemReset	4	static,ignoring_inline_asm
+Core/Src/ota.c:78:6:OTA_Init	8	static
+Core/Src/ota.c:83:6:OTA_Process	8	static
+Core/Src/ota.c:88:13:fmt_flt	56	static
+Core/Src/ota.c:104:6:Process_Web_OTA	1008	static

@@ -85,7 +85,7 @@
 #define CMD_RECV              0x40
 
 #define W5500_S0_BUF_MASK     0x1FFF
-#define CHUNK_BUFFER_SIZE     (1024)
+#define CHUNK_BUFFER_SIZE     (256)
 
 uint8_t ram_buffer[CHUNK_BUFFER_SIZE];
 /* USER CODE END PD */

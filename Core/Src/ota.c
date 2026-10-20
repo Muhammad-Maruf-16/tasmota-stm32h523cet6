@@ -16,6 +16,7 @@
 #include "web_cmnd.h"
 #include "html_flash.h"
 #include "html_landing.h"
+#include "bl0906.h"
 
 #include <string.h>
 #include <stdio.h>
@@ -57,7 +58,7 @@ extern volatile uint32_t g_ms_tick;
 #define CMD_RECV              0x40
 
 #define W5500_S0_BUF_MASK     0x1FFF
-#define CHUNK_BUFFER_SIZE     (1024)
+#define CHUNK_BUFFER_SIZE     (256)
 
 /* ==============================================================================
  * FORWARD DECLARATIONS (Fungsi Driver W5500 & Buffer dari main.c)
@@ -82,6 +83,19 @@ void OTA_Init(void)
 void OTA_Process(void)
 {
     Process_Web_OTA();
+}
+
+static void fmt_flt(char *buf, size_t sz, float val, int dec)
+{
+    long factor = 1;
+    for (int i = 0; i < dec; i++) factor *= 10;
+    int sign = (val < 0.0f) ? -1 : 1;
+    float abs_val = (val < 0.0f) ? -val : val;
+    long int_part = (long)abs_val;
+    long dec_part = (long)((abs_val - (float)int_part) * (float)factor + 0.5f);
+    if (dec_part >= factor) { int_part += 1; dec_part = 0; }
+    if (sign < 0) snprintf(buf, sz, "-%ld.%0*ld", int_part, dec, dec_part);
+    else snprintf(buf, sz, "%ld.%0*ld", int_part, dec, dec_part);
 }
 
 /* ==============================================================================
@@ -124,6 +138,62 @@ void Process_Web_OTA(void)
         W5500_ReadBuf(s_off, W5500_S0_RX_OP, ram_buffer, fetch);
     }
     ram_buffer[fetch] = '\0';
+
+    /* 0. /sensor — JSON Real-time Data BL0906 */
+    if (strstr((char *)ram_buffer, "GET /sensor") != NULL)
+    {
+        char v_str[16], f_str[16], tp_str[16], te_str[16], t_str[16];
+        fmt_flt(v_str,  sizeof(v_str),  g_bl0906_data.voltage,     1);
+        fmt_flt(f_str,  sizeof(f_str),  g_bl0906_data.frequency,   1);
+        fmt_flt(tp_str, sizeof(tp_str), g_bl0906_data.total_power, 1);
+        fmt_flt(te_str, sizeof(te_str), g_bl0906_data.total_energy, 4);
+        fmt_flt(t_str,  sizeof(t_str),  g_bl0906_data.temperature, 1);
+
+        char c_str[6][12], p_str[6][12];
+        for (int i = 0; i < 6; i++) {
+            fmt_flt(c_str[i], sizeof(c_str[i]), g_bl0906_data.current[i], 3);
+            fmt_flt(p_str[i], sizeof(p_str[i]), g_bl0906_data.power[i],   1);
+        }
+
+        uint32_t upt_sec = g_ms_tick / 1000;
+        static char s_json[512];
+        snprintf(s_json, sizeof(s_json),
+            "{\"u\":%s,\"f\":%s,\"p\":%s,\"e\":%s,\"t\":%s,"
+            "\"c\":[{\"i\":%s,\"w\":%s},{\"i\":%s,\"w\":%s},{\"i\":%s,\"w\":%s},"
+            "{\"i\":%s,\"w\":%s},{\"i\":%s,\"w\":%s},{\"i\":%s,\"w\":%s}],"
+            "\"upt\":%lu,\"on\":%d}",
+            v_str, f_str, tp_str, te_str, t_str,
+            c_str[0], p_str[0], c_str[1], p_str[1], c_str[2], p_str[2],
+            c_str[3], p_str[3], c_str[4], p_str[4], c_str[5], p_str[5],
+            (unsigned long)upt_sec, g_bl0906_data.is_online ? 1 : 0);
+
+        char s_hdr[160];
+        snprintf(s_hdr, sizeof(s_hdr),
+            "HTTP/1.1 200 OK\r\n"
+            "Content-Type: application/json\r\n"
+            "Content-Length: %d\r\n"
+            "Access-Control-Allow-Origin: *\r\n"
+            "Connection: close\r\n\r\n",
+            (int)strlen(s_json));
+
+        W5500_SendTCP((uint8_t *)s_hdr, (uint16_t)strlen(s_hdr));
+        W5500_SendTCP((uint8_t *)s_json, (uint16_t)strlen(s_json));
+
+        rx_rd += rx_len;
+        W5500_WriteReg(Sn_RX_RD, W5500_S0_REG_OP, (uint8_t)(rx_rd >> 8));
+        W5500_WriteReg(Sn_RX_RD + 1, W5500_S0_REG_OP, (uint8_t)rx_rd);
+        W5500_WriteReg(Sn_CR, W5500_S0_REG_OP, CMD_RECV);
+        while (W5500_ReadReg(Sn_CR, W5500_S0_REG_OP));
+        uint32_t t_flush = g_ms_tick;
+        while (W5500_GetTxFreeSize() < 8192 && (g_ms_tick - t_flush) < 200)
+        {
+            uint8_t sr_cur = W5500_ReadReg(Sn_SR, W5500_S0_REG_OP);
+            if (sr_cur != SOCK_ESTABLISHED && sr_cur != SOCK_CLOSE_WAIT) break;
+        }
+        W5500_WriteReg(Sn_CR, W5500_S0_REG_OP, CMD_DISCON);
+        while (W5500_ReadReg(Sn_CR, W5500_S0_REG_OP));
+        return;
+    }
 
     /* 1. /config — Form Konfigurasi MQTT */
     if (strstr((char *)ram_buffer, "/config") != NULL)
@@ -402,24 +472,20 @@ void Process_Web_OTA(void)
 
         if (expected_size == 0 || expected_size > HTML_FLASH_DATA_MAX)
         {
-            const char err[] = "HTTP/1.1 400 Bad Request\r\n\r\nSize invalid";
+            const char err[] = "HTTP/1.1 400 Bad Request\r\nConnection: close\r\n\r\nSize invalid";
             W5500_SendTCP((uint8_t *)err, strlen(err));
-            rx_rd += rx_len;
-            W5500_WriteReg(Sn_RX_RD, W5500_S0_REG_OP, (uint8_t)(rx_rd >> 8));
-            W5500_WriteReg(Sn_RX_RD + 1, W5500_S0_REG_OP, (uint8_t)rx_rd);
-            W5500_WriteReg(Sn_CR, W5500_S0_REG_OP, CMD_RECV);
-            while (W5500_ReadReg(Sn_CR, W5500_S0_REG_OP));
             W5500_WriteReg(Sn_CR, W5500_S0_REG_OP, CMD_DISCON);
             while (W5500_ReadReg(Sn_CR, W5500_S0_REG_OP));
             return;
         }
 
+        // Cari \r\n\r\n dengan overlap 4 byte (identik sha256)
+        uint8_t  html_rx_already_updated = 0;
         uint8_t  html_tail[4] = { 0 };
         char    *pBody = NULL;
-        uint32_t header_to = g_ms_tick;
         while (pBody == NULL)
         {
-            static uint8_t overlap[4 + CHUNK_BUFFER_SIZE];
+            uint8_t overlap[4 + CHUNK_BUFFER_SIZE];
             memcpy(overlap, html_tail, 4);
             memcpy(overlap + 4, ram_buffer, fetch);
             overlap[4 + fetch] = '\0';
@@ -427,15 +493,20 @@ void Process_Web_OTA(void)
             if (found)
             {
                 int pos_in_overlap = (found - (char *)overlap);
-                int pos_in_buf = pos_in_overlap - 4;
-                int body_start = pos_in_buf + 4;
-                if (body_start < 0) body_start = 0;
-                if (body_start > fetch) body_start = fetch;
+                int pos_in_buf     = pos_in_overlap - 4;
+                int body_start     = pos_in_buf + 4;
+                if (body_start < 0)      body_start = 0;
+                if (body_start > fetch)  body_start = fetch;
                 pBody = (char *)ram_buffer + body_start;
+                rx_rd += fetch;
+                W5500_WriteReg(Sn_RX_RD,     W5500_S0_REG_OP, (uint8_t)(rx_rd >> 8));
+                W5500_WriteReg(Sn_RX_RD + 1, W5500_S0_REG_OP, (uint8_t)rx_rd);
+                W5500_WriteReg(Sn_CR,         W5500_S0_REG_OP, CMD_RECV);
+                while (W5500_ReadReg(Sn_CR,   W5500_S0_REG_OP));
+                html_rx_already_updated = 1;
             }
             else
             {
-                if (g_ms_tick - header_to > 5000) break;
                 memcpy(html_tail, ram_buffer + fetch - 4, 4);
                 rx_rd += fetch;
                 W5500_WriteReg(Sn_RX_RD,     W5500_S0_REG_OP, (uint8_t)(rx_rd >> 8));
@@ -445,19 +516,14 @@ void Process_Web_OTA(void)
                 rx_len = ((uint16_t)W5500_ReadReg(Sn_RX_RSR,     W5500_S0_REG_OP) << 8) |
                                      W5500_ReadReg(Sn_RX_RSR + 1, W5500_S0_REG_OP);
                 if (rx_len == 0) continue;
-                header_to = g_ms_tick;
                 fetch = (rx_len > (CHUNK_BUFFER_SIZE - 1)) ? (CHUNK_BUFFER_SIZE - 1) : rx_len;
                 s_off = rx_rd & W5500_S0_BUF_MASK;
                 W5500_ReadBuf(s_off, W5500_S0_RX_OP, ram_buffer, fetch);
                 ram_buffer[fetch] = '\0';
             }
         }
-        if (pBody == NULL) {
-            W5500_WriteReg(Sn_CR, W5500_S0_REG_OP, CMD_DISCON);
-            while (W5500_ReadReg(Sn_CR, W5500_S0_REG_OP));
-            return;
-        }
 
+        // Erase sektor target HTML
         ExtFlash_EraseSector(HTML_FLASH_META_ADDR);
         uint32_t html_sectors = (expected_size + 4095) / 4096;
         for (uint32_t s = 0; s < html_sectors; s++)
@@ -465,71 +531,28 @@ void Process_Web_OTA(void)
             ExtFlash_EraseSector(HTML_FLASH_DATA_ADDR + (s * 4096));
         }
 
+        // Tulis chunk awal body
         uint16_t header_len      = (uint8_t *)pBody - ram_buffer;
         uint16_t body_in_packet  = fetch - header_len;
         uint32_t bytes_received  = 0;
         if (body_in_packet > 0)
         {
-            uint16_t to_write = (body_in_packet > expected_size) ? expected_size : body_in_packet;
-            uint32_t cur_flash = HTML_FLASH_DATA_ADDR;
             uint16_t written = 0;
-            while (written < to_write)
+            while (written < body_in_packet)
             {
-                uint16_t page_offset = (uint16_t)((cur_flash + written) & 0xFF);
-                uint16_t space       = 256 - page_offset;
-                uint16_t chunk       = (to_write - written > space) ? space : (to_write - written);
-                ExtFlash_WritePage(cur_flash + written, (uint8_t *)pBody + written, chunk);
-                written += chunk;
+                uint32_t cur_flash   = HTML_FLASH_DATA_ADDR + written;
+                uint16_t page_offset = cur_flash & 0xFF;
+                uint16_t space_left  = 256 - page_offset;
+                uint16_t page_len    = (body_in_packet - written > space_left)
+                                        ? space_left : (body_in_packet - written);
+                ExtFlash_WritePage(cur_flash, (uint8_t *)pBody + written, page_len);
+                written += page_len;
             }
-            bytes_received += to_write;
+            bytes_received += body_in_packet;
         }
 
-        rx_rd += fetch;
-        W5500_WriteReg(Sn_RX_RD,     W5500_S0_REG_OP, (uint8_t)(rx_rd >> 8));
-        W5500_WriteReg(Sn_RX_RD + 1, W5500_S0_REG_OP, (uint8_t)rx_rd);
-        W5500_WriteReg(Sn_CR,         W5500_S0_REG_OP, CMD_RECV);
-        while (W5500_ReadReg(Sn_CR,   W5500_S0_REG_OP));
-
-        uint32_t upload_to = g_ms_tick;
-        while (bytes_received < expected_size)
+        if (!html_rx_already_updated)
         {
-            rx_len = ((uint16_t)W5500_ReadReg(Sn_RX_RSR,     W5500_S0_REG_OP) << 8) |
-                                 W5500_ReadReg(Sn_RX_RSR + 1, W5500_S0_REG_OP);
-            if (rx_len == 0)
-            {
-                uint8_t cur_sr = W5500_ReadReg(Sn_SR, W5500_S0_REG_OP);
-                if (cur_sr != SOCK_ESTABLISHED && cur_sr != SOCK_CLOSE_WAIT) break;
-                if (g_ms_tick - upload_to > 10000) break;
-                continue;
-            }
-            upload_to = g_ms_tick;
-            fetch = (rx_len > CHUNK_BUFFER_SIZE) ? CHUNK_BUFFER_SIZE : rx_len;
-            uint32_t needed = expected_size - bytes_received;
-            if (fetch > needed) fetch = needed;
-            s_off = rx_rd & W5500_S0_BUF_MASK;
-            if ((s_off + fetch) > (W5500_S0_BUF_MASK + 1))
-            {
-                uint16_t part1 = (W5500_S0_BUF_MASK + 1) - s_off;
-                W5500_ReadBuf(s_off,  W5500_S0_RX_OP, ram_buffer,         part1);
-                W5500_ReadBuf(0x0000, W5500_S0_RX_OP, ram_buffer + part1, fetch - part1);
-            }
-            else
-            {
-                W5500_ReadBuf(s_off, W5500_S0_RX_OP, ram_buffer, fetch);
-            }
-
-            uint32_t cur_flash = HTML_FLASH_DATA_ADDR + bytes_received;
-            uint16_t written   = 0;
-            while (written < fetch)
-            {
-                uint16_t page_offset = (uint16_t)((cur_flash + written) & 0xFF);
-                uint16_t space       = 256 - page_offset;
-                uint16_t chunk       = (fetch - written > space) ? space : (fetch - written);
-                ExtFlash_WritePage(cur_flash + written, ram_buffer + written, chunk);
-                written += chunk;
-            }
-
-            bytes_received += fetch;
             rx_rd += fetch;
             W5500_WriteReg(Sn_RX_RD,     W5500_S0_REG_OP, (uint8_t)(rx_rd >> 8));
             W5500_WriteReg(Sn_RX_RD + 1, W5500_S0_REG_OP, (uint8_t)rx_rd);
@@ -537,22 +560,75 @@ void Process_Web_OTA(void)
             while (W5500_ReadReg(Sn_CR,   W5500_S0_REG_OP));
         }
 
+        // Stream sisa payload — selalu baca pointer aktual dari register Sn_RX_RD W5500
+        while (bytes_received < expected_size)
+        {
+            rx_len = ((uint16_t)W5500_ReadReg(Sn_RX_RSR,     W5500_S0_REG_OP) << 8) |
+                                 W5500_ReadReg(Sn_RX_RSR + 1, W5500_S0_REG_OP);
+            if (rx_len == 0) continue;
+            rx_rd = ((uint16_t)W5500_ReadReg(Sn_RX_RD,     W5500_S0_REG_OP) << 8) |
+                                W5500_ReadReg(Sn_RX_RD + 1, W5500_S0_REG_OP);
+            uint16_t grab = (rx_len > CHUNK_BUFFER_SIZE) ? CHUNK_BUFFER_SIZE : rx_len;
+            if (bytes_received + grab > expected_size) grab = expected_size - bytes_received;
+            s_off = rx_rd & W5500_S0_BUF_MASK;
+            if ((s_off + grab) > (W5500_S0_BUF_MASK + 1))
+            {
+                uint16_t p1 = (W5500_S0_BUF_MASK + 1) - s_off;
+                W5500_ReadBuf(s_off,   W5500_S0_RX_OP, ram_buffer,      p1);
+                W5500_ReadBuf(0x0000,  W5500_S0_RX_OP, ram_buffer + p1, grab - p1);
+            }
+            else
+            {
+                W5500_ReadBuf(s_off, W5500_S0_RX_OP, ram_buffer, grab);
+            }
+
+            uint16_t written = 0;
+            while (written < grab)
+            {
+                uint32_t cur_flash   = HTML_FLASH_DATA_ADDR + bytes_received + written;
+                uint16_t page_offset = cur_flash & 0xFF;
+                uint16_t space_left  = 256 - page_offset;
+                uint16_t page_len    = (grab - written > space_left)
+                                        ? space_left : (grab - written);
+                ExtFlash_WritePage(cur_flash, &ram_buffer[written], page_len);
+                written += page_len;
+            }
+
+            bytes_received += grab;
+            rx_rd += grab;
+            W5500_WriteReg(Sn_RX_RD,     W5500_S0_REG_OP, (uint8_t)(rx_rd >> 8));
+            W5500_WriteReg(Sn_RX_RD + 1, W5500_S0_REG_OP, (uint8_t)rx_rd);
+            W5500_WriteReg(Sn_CR,         W5500_S0_REG_OP, CMD_RECV);
+            while (W5500_ReadReg(Sn_CR,   W5500_S0_REG_OP));
+        }
+
+        // Verifikasi CRC & simpan meta
         if (HtmlFlash_VerifyAndSaveMeta(expected_size, expected_crc))
         {
-            const char ok[] = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\nHTML Saved!";
+            const char ok[] = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: 15\r\nConnection: close\r\n\r\nHTML tersimpan!";
             W5500_SendTCP((uint8_t *)ok, strlen(ok));
         }
         else
         {
-            const char fail[] = "HTTP/1.1 500 Internal Error\r\n\r\nCRC Mismatch";
+            const char fail[] = "HTTP/1.1 500 Error\r\nContent-Type: text/plain\r\nContent-Length: 14\r\nConnection: close\r\n\r\nCRC Mismatch!";
             W5500_SendTCP((uint8_t *)fail, strlen(fail));
         }
+
+        uint32_t drain_to = g_ms_tick;
+        while (W5500_GetTxFreeSize() < 8192)
+        {
+            uint8_t cur_sr = W5500_ReadReg(Sn_SR, W5500_S0_REG_OP);
+            if (cur_sr != SOCK_ESTABLISHED && cur_sr != SOCK_CLOSE_WAIT) break;
+            if (g_ms_tick - drain_to > 1000) break;
+        }
+
+        for (volatile int d = 0; d < 200000; d++);
         W5500_WriteReg(Sn_CR, W5500_S0_REG_OP, CMD_DISCON);
         while (W5500_ReadReg(Sn_CR, W5500_S0_REG_OP));
         return;
     }
 
-    /* 5. POST /ota — Upload Firmware OTA */
+    /* 5. POST /ota — Upload Firmware OTA (identik sha256) */
     if (strstr((char *)ram_buffer, "POST /ota") == NULL) return;
 
     char *pSize = strstr((char *)ram_buffer, "?sz=");
@@ -563,26 +639,19 @@ void Process_Web_OTA(void)
 
     if (expected_size == 0 || expected_size > MAX_FIRMWARE_SIZE)
     {
-        const char err[] = "HTTP/1.1 400 Bad Request\r\n\r\nSize invalid";
+        const char err[] = "HTTP/1.1 400 Bad Request\r\nConnection: close\r\n\r\nSize invalid";
         W5500_SendTCP((uint8_t *)err, strlen(err));
-        rx_rd += rx_len;
-        W5500_WriteReg(Sn_RX_RD, W5500_S0_REG_OP, (uint8_t)(rx_rd >> 8));
-        W5500_WriteReg(Sn_RX_RD + 1, W5500_S0_REG_OP, (uint8_t)rx_rd);
-        W5500_WriteReg(Sn_CR, W5500_S0_REG_OP, CMD_RECV);
-        while (W5500_ReadReg(Sn_CR, W5500_S0_REG_OP));
         W5500_WriteReg(Sn_CR, W5500_S0_REG_OP, CMD_DISCON);
         while (W5500_ReadReg(Sn_CR, W5500_S0_REG_OP));
         return;
     }
 
-    uint32_t target_meta = FLASH_STAGING_META;
-    uint32_t target_bin  = FLASH_STAGING_BIN;
-
+    uint8_t rx_already_updated = 0;
     uint8_t tail[4] = { 0 };
     char *pBody = NULL;
     while (pBody == NULL)
     {
-        static uint8_t overlap[4 + CHUNK_BUFFER_SIZE];
+        uint8_t overlap[4 + CHUNK_BUFFER_SIZE];
         memcpy(overlap, tail, 4);
         memcpy(overlap + 4, ram_buffer, fetch);
         overlap[4 + fetch] = '\0';
@@ -590,11 +659,17 @@ void Process_Web_OTA(void)
         if (found)
         {
             int pos_in_overlap = (found - (char *)overlap);
-            int pos_in_buf = pos_in_overlap - 4;
-            int body_start = pos_in_buf + 4;
-            if (body_start < 0) body_start = 0;
+            int pos_in_buf     = pos_in_overlap - 4;
+            int body_start     = pos_in_buf + 4;
+            if (body_start < 0)     body_start = 0;
             if (body_start > fetch) body_start = fetch;
             pBody = (char *)ram_buffer + body_start;
+            rx_rd += fetch;
+            W5500_WriteReg(Sn_RX_RD,     W5500_S0_REG_OP, (uint8_t)(rx_rd >> 8));
+            W5500_WriteReg(Sn_RX_RD + 1, W5500_S0_REG_OP, (uint8_t)rx_rd);
+            W5500_WriteReg(Sn_CR,         W5500_S0_REG_OP, CMD_RECV);
+            while (W5500_ReadReg(Sn_CR,   W5500_S0_REG_OP));
+            rx_already_updated = 1;
         }
         else
         {
@@ -614,6 +689,9 @@ void Process_Web_OTA(void)
         }
     }
 
+    uint32_t target_meta = FLASH_STAGING_META;
+    uint32_t target_bin  = FLASH_STAGING_BIN;
+
     ExtFlash_EraseSector(target_meta);
     uint32_t sectors = (expected_size + 4095) / 4096;
     for (uint32_t s = 0; s < sectors; s++)
@@ -626,58 +704,22 @@ void Process_Web_OTA(void)
     uint32_t bytes_received  = 0;
     if (body_in_packet > 0)
     {
-        uint16_t to_write = (body_in_packet > expected_size) ? expected_size : body_in_packet;
-        uint32_t cur_flash = target_bin;
         uint16_t written = 0;
-        while (written < to_write)
+        while (written < body_in_packet)
         {
-            uint16_t page_offset = (uint16_t)((cur_flash + written) & 0xFF);
-            uint16_t space       = 256 - page_offset;
-            uint16_t chunk       = (to_write - written > space) ? space : (to_write - written);
-            ExtFlash_WritePage(cur_flash + written, (uint8_t *)pBody + written, chunk);
-            written += chunk;
+            uint32_t cur_flash   = target_bin + written;
+            uint16_t page_offset = cur_flash & 0xFF;
+            uint16_t space_left  = 256 - page_offset;
+            uint16_t page_len    = (body_in_packet - written > space_left)
+                                    ? space_left : (body_in_packet - written);
+            ExtFlash_WritePage(cur_flash, (uint8_t *)pBody + written, page_len);
+            written += page_len;
         }
-        bytes_received += to_write;
+        bytes_received += body_in_packet;
     }
 
-    rx_rd += fetch;
-    W5500_WriteReg(Sn_RX_RD,     W5500_S0_REG_OP, (uint8_t)(rx_rd >> 8));
-    W5500_WriteReg(Sn_RX_RD + 1, W5500_S0_REG_OP, (uint8_t)rx_rd);
-    W5500_WriteReg(Sn_CR,         W5500_S0_REG_OP, CMD_RECV);
-    while (W5500_ReadReg(Sn_CR,   W5500_S0_REG_OP));
-
-    while (bytes_received < expected_size)
+    if (!rx_already_updated)
     {
-        rx_len = ((uint16_t)W5500_ReadReg(Sn_RX_RSR,     W5500_S0_REG_OP) << 8) |
-                             W5500_ReadReg(Sn_RX_RSR + 1, W5500_S0_REG_OP);
-        if (rx_len == 0) continue;
-        fetch = (rx_len > CHUNK_BUFFER_SIZE) ? CHUNK_BUFFER_SIZE : rx_len;
-        uint32_t needed = expected_size - bytes_received;
-        if (fetch > needed) fetch = needed;
-        s_off = rx_rd & W5500_S0_BUF_MASK;
-        if ((s_off + fetch) > (W5500_S0_BUF_MASK + 1))
-        {
-            uint16_t part1 = (W5500_S0_BUF_MASK + 1) - s_off;
-            W5500_ReadBuf(s_off,  W5500_S0_RX_OP, ram_buffer,         part1);
-            W5500_ReadBuf(0x0000, W5500_S0_RX_OP, ram_buffer + part1, fetch - part1);
-        }
-        else
-        {
-            W5500_ReadBuf(s_off, W5500_S0_RX_OP, ram_buffer, fetch);
-        }
-
-        uint32_t cur_flash = target_bin + bytes_received;
-        uint16_t written   = 0;
-        while (written < fetch)
-        {
-            uint16_t page_offset = (uint16_t)((cur_flash + written) & 0xFF);
-            uint16_t space       = 256 - page_offset;
-            uint16_t chunk       = (fetch - written > space) ? space : (fetch - written);
-            ExtFlash_WritePage(cur_flash + written, ram_buffer + written, chunk);
-            written += chunk;
-        }
-
-        bytes_received += fetch;
         rx_rd += fetch;
         W5500_WriteReg(Sn_RX_RD,     W5500_S0_REG_OP, (uint8_t)(rx_rd >> 8));
         W5500_WriteReg(Sn_RX_RD + 1, W5500_S0_REG_OP, (uint8_t)rx_rd);
@@ -685,23 +727,59 @@ void Process_Web_OTA(void)
         while (W5500_ReadReg(Sn_CR,   W5500_S0_REG_OP));
     }
 
-    CRC->CR = 1;
-    uint32_t words_left = (expected_size + 3) / 4;
-    uint32_t cur_flash_read = target_bin;
-    while (words_left > 0)
+    while (bytes_received < expected_size)
     {
-        uint32_t batch = (words_left > 16) ? 16 : words_left;
+        rx_len = ((uint16_t)W5500_ReadReg(Sn_RX_RSR,     W5500_S0_REG_OP) << 8) |
+                             W5500_ReadReg(Sn_RX_RSR + 1, W5500_S0_REG_OP);
+        if (rx_len == 0) continue;
+        rx_rd = ((uint16_t)W5500_ReadReg(Sn_RX_RD,     W5500_S0_REG_OP) << 8) |
+                            W5500_ReadReg(Sn_RX_RD + 1, W5500_S0_REG_OP);
+        uint16_t grab = (rx_len > CHUNK_BUFFER_SIZE) ? CHUNK_BUFFER_SIZE : rx_len;
+        if (bytes_received + grab > expected_size) grab = expected_size - bytes_received;
+        s_off = rx_rd & W5500_S0_BUF_MASK;
+        if ((s_off + grab) > (W5500_S0_BUF_MASK + 1))
+        {
+            uint16_t p1 = (W5500_S0_BUF_MASK + 1) - s_off;
+            W5500_ReadBuf(s_off,   W5500_S0_RX_OP, ram_buffer,      p1);
+            W5500_ReadBuf(0x0000,  W5500_S0_RX_OP, ram_buffer + p1, grab - p1);
+        }
+        else
+        {
+            W5500_ReadBuf(s_off, W5500_S0_RX_OP, ram_buffer, grab);
+        }
+
+        uint16_t written = 0;
+        while (written < grab)
+        {
+            uint32_t cur_flash   = target_bin + bytes_received + written;
+            uint16_t page_offset = cur_flash & 0xFF;
+            uint16_t space_left  = 256 - page_offset;
+            uint16_t page_len    = (grab - written > space_left)
+                                    ? space_left : (grab - written);
+            ExtFlash_WritePage(cur_flash, &ram_buffer[written], page_len);
+            written += page_len;
+        }
+
+        bytes_received += grab;
+        rx_rd += grab;
+        W5500_WriteReg(Sn_RX_RD,     W5500_S0_REG_OP, (uint8_t)(rx_rd >> 8));
+        W5500_WriteReg(Sn_RX_RD + 1, W5500_S0_REG_OP, (uint8_t)rx_rd);
+        W5500_WriteReg(Sn_CR,         W5500_S0_REG_OP, CMD_RECV);
+        while (W5500_ReadReg(Sn_CR,   W5500_S0_REG_OP));
+    }
+
+    CRC->CR = 1;
+    uint32_t words = (expected_size + 3) / 4;
+    uint32_t r_addr = target_bin;
+    while (words > 0)
+    {
+        uint32_t c_w = (words > 16) ? 16 : words;
         uint8_t  temp[64];
-        uint32_t read_len = batch * 4;
-        for (uint32_t z = 0; z < read_len; z++) temp[z] = 0xFF;
-        uint32_t real_bytes = (cur_flash_read - target_bin < expected_size) ?
-                              (expected_size - (cur_flash_read - target_bin)) : 0;
-        if (real_bytes > read_len) real_bytes = read_len;
-        if (real_bytes > 0) Flash_ReadBytes(cur_flash_read, temp, real_bytes);
+        Flash_ReadBytes(r_addr, temp, c_w * 4);
         uint32_t *p = (uint32_t *)temp;
-        for (uint32_t w = 0; w < batch; w++) CRC->DR = p[w];
-        cur_flash_read += read_len;
-        words_left -= batch;
+        for (uint32_t w = 0; w < c_w; w++) CRC->DR = p[w];
+        r_addr += (c_w * 4);
+        words -= c_w;
     }
 
     if (CRC->DR == expected_crc)
@@ -734,7 +812,7 @@ void Process_Web_OTA(void)
     }
     else
     {
-        const char fail[] = "HTTP/1.1 500 Internal Error\r\n\r\nCRC Error";
+        const char fail[] = "HTTP/1.1 500 Internal Error\r\nConnection: close\r\n\r\nCRC Error";
         W5500_SendTCP((uint8_t *)fail, strlen(fail));
         W5500_WriteReg(Sn_CR, W5500_S0_REG_OP, CMD_DISCON);
         while (W5500_ReadReg(Sn_CR, W5500_S0_REG_OP));
